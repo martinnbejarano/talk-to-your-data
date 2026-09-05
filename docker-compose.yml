@@ -1,0 +1,61 @@
+# docker compose para el challenge — levantar la base y restaurar el dump.
+#
+#   1) poné el dump en ./dump/compliance.dump  (link de descarga aparte)
+#   2) docker compose up -d db
+#   3) docker compose run --rm restore        # ~5-10 min
+#   4) conectá a localhost:55432  (user/pass/db: postgres / compliance / compliance)
+#
+# La base aplica statement_timeout=15s: una query que hace full scan muere por
+# timeout. Asigná >= 4 GB de RAM a Docker Desktop para que ande cómoda.
+services:
+  db:
+    image: postgres:17
+    container_name: challenge_pg
+    environment:
+      POSTGRES_DB: compliance
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: compliance
+    command:
+      - "postgres"
+      - "-c"
+      - "statement_timeout=15s"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "work_mem=64MB"
+      - "-c"
+      - "maintenance_work_mem=512MB"
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d compliance"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Restaura el dump pre-horneado. Desactiva el statement_timeout SOLO para esta
+  # sesión (crear índices sobre decenas de millones de filas tarda > 15s); el
+  # default del server (15s) sigue vigente para tus queries.
+  restore:
+    image: postgres:17
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: compliance
+      PGDATABASE: compliance
+      PGOPTIONS: "-c statement_timeout=0"
+    volumes:
+      - ./dump:/dump:ro
+    command:
+      - "bash"
+      - "-lc"
+      - "pg_restore --clean --if-exists --no-owner -j4 -d compliance /dump/compliance.dump"
+
+volumes:
+  pgdata:

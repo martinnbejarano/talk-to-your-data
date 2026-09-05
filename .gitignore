@@ -1,0 +1,11 @@
+dump/
+.env
+.env.local
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+dist/
+.DS_Store
+evals/reports/*.json
