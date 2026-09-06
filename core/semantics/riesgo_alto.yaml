@@ -27,19 +27,19 @@ trampas:
   - "screening_vigente va AS MATERIALIZED o el plan se degrada a timeout."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Clientes de la institución"
-  - paso: activos
+  - escalon: activos
     texto: "activos (no dados de baja)"
-  - paso: con_evaluacion
+  - escalon: con_evaluacion
     texto: "con evaluación de riesgo vigente"
-  - paso: por_score
+  - escalon: por_score
     texto: "score ≥ umbral de tu institución"
-  - paso: por_marca
+  - escalon: por_marca
     texto: "+ marcados a mano como riesgo alto"
-  - paso: por_pep
+  - escalon: por_pep
     texto: "+ PEP vigentes (tu institución los cuenta)"
-  - paso: riesgo_alto
+  - escalon: riesgo_alto
     texto: "= clientes de riesgo alto"
 
 resultado: riesgo_alto

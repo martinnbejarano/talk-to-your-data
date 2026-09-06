@@ -25,17 +25,17 @@ trampas:
      sería ruido que no excluye nada."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Alertas de la institución"
-  - paso: activas
+  - escalon: activas
     texto: "no borradas"
-  - paso: sin_revisar
+  - escalon: sin_revisar
     texto: "sin revisar"
-  - paso: sin_revisar_vencidas
+  - escalon: sin_revisar_vencidas
     texto: "sin revisar y ya vencidas"
-  - paso: revisadas_tarde
+  - escalon: revisadas_tarde
     texto: "+ revisadas fuera de plazo"
-  - paso: fuera_de_sla
+  - escalon: fuera_de_sla
     texto: "= alertas fuera del SLA"
 
 resultado: fuera_de_sla

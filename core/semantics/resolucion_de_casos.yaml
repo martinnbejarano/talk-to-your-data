@@ -25,13 +25,13 @@ trampas:
      nada que status no tenga."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Casos de la institución"
-  - paso: del_periodo
+  - escalon: del_periodo
     texto: "abiertos en el período"
-  - paso: cerrados
+  - escalon: cerrados
     texto: "que ya cerraron (cerrados y reportados a la UIF)"
-  - paso: abiertos
+  - escalon: abiertos
     texto: "que siguen abiertos (sin tiempo de resolución)"
 
 metricas:

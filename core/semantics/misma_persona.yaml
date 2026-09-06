@@ -22,17 +22,17 @@ trampas:
      otro, ni variantes del nombre. Es una limitación asumida y se declara."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Clientes de la institución"
-  - paso: activos
+  - escalon: activos
     texto: "activos (no dados de baja)"
-  - paso: con_documento
+  - escalon: con_documento
     texto: "con documento cargado"
-  - paso: personas_distintas
+  - escalon: personas_distintas
     texto: "documentos distintos, ya normalizados"
-  - paso: personas_repetidas
+  - escalon: personas_repetidas
     texto: "= documentos que aparecen en más de un legajo"
-  - paso: legajos_repetidos
+  - escalon: legajos_repetidos
     texto: "legajos involucrados en esas repeticiones"
 
 resultado: personas_repetidas

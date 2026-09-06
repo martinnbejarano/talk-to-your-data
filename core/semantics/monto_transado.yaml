@@ -28,13 +28,13 @@ trampas:
      el screening vigente una vez por fila: de 100 ms a timeout."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Transacciones del período"
-  - paso: activas
+  - escalon: activas
     texto: "no borradas"
-  - paso: del_segmento
+  - escalon: del_segmento
     texto: "de clientes de riesgo alto"
-  - paso: liquidadas
+  - escalon: liquidadas
     texto: "= liquidadas (movimiento efectivo)"
 
 resultado: liquidadas

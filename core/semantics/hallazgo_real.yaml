@@ -22,15 +22,15 @@ trampas:
   - "alerts arranca en 2024-05-10 y no tiene ni una fila borrada."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Alertas de la institución"
-  - paso: del_periodo
+  - escalon: del_periodo
     texto: "disparadas en el período"
-  - paso: confirmadas
+  - escalon: confirmadas
     texto: "cerradas como verdadero positivo"
-  - paso: escaladas
+  - escalon: escaladas
     texto: "+ escaladas (tu institución las cuenta)"
-  - paso: hallazgos
+  - escalon: hallazgos
     texto: "= hallazgos reales"
 
 resultado: hallazgos

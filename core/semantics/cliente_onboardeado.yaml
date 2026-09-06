@@ -22,15 +22,15 @@ trampas:
      da que no hay datos de altas anteriores a mayo de 2024."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Clientes de la institución"
-  - paso: activos
+  - escalon: activos
     texto: "activos (no dados de baja)"
-  - paso: aprobados
+  - escalon: aprobados
     texto: "aprobados (KYC completo)"
-  - paso: con_fecha_de_alta
+  - escalon: con_fecha_de_alta
     texto: "con fecha de alta registrada"
-  - paso: altas_del_periodo
+  - escalon: altas_del_periodo
     texto: "= dados de alta en el período"
 
 resultado: altas_del_periodo

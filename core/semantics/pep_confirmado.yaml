@@ -27,15 +27,15 @@ trampas:
      pregunta directa, sigue abierta."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Clientes de la institución"
-  - paso: activos
+  - escalon: activos
     texto: "activos (no dados de baja)"
-  - paso: con_screening
+  - escalon: con_screening
     texto: "con al menos un screening"
-  - paso: pep_historico
+  - escalon: pep_historico
     texto: "alguna vez dieron hit confirmado"
-  - paso: pep_vigente
+  - escalon: pep_vigente
     texto: "= su screening más reciente da hit confirmado"
 
 resultado: pep_vigente

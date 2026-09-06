@@ -24,13 +24,13 @@ trampas:
      más grande. Las dos poblaciones no se pueden cruzar."
 
 derivacion:
-  - paso: total
+  - escalon: total
     texto: "Casos de la institución"
-  - paso: activos
+  - escalon: activos
     texto: "no borrados"
-  - paso: reportados
+  - escalon: reportados
     texto: "reportados a la UIF"
-  - paso: reportados_en_periodo
+  - escalon: reportados_en_periodo
     texto: "= reportados en el período"
 
 resultado: reportados_en_periodo
