@@ -9,3 +9,4 @@ node_modules/
 dist/
 .DS_Store
 evals/reports/*.json
+.pytest_cache/

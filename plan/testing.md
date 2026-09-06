@@ -38,6 +38,19 @@ evals binarios que esconden la inconsistencia entre corridas.
 6. **Table-driven sólo cuando varía input/output**, no la lógica. El runner de evals
    califica: sólo cambian pregunta y respuesta esperada.
 
+## Cómo se corre la suite
+
+```
+.venv/bin/pytest -m "not lento"   # ciclo rápido, ~2 s: es el de cada cambio
+.venv/bin/pytest                  # completa, ~17 s: antes de cerrar un ticket
+```
+
+El marker `lento` está declarado en `pytest.ini` y hoy lo lleva un solo test: el que
+espera los 15 segundos del `statement_timeout` para confirmar que muerde. Un test lento
+no es un test de segunda —ése demuestra un límite de recursos real— pero tiene que poder
+excluirse **sin** excluir los de aislamiento, que son los que tienen que sonar en cada
+cambio. Marcar por lentitud y no por carpeta es lo que lo permite.
+
 ## Heurística para decidir qué testear
 
 1. **Clasificar**: unitario (sin dependencias) · localizado (con storage real) ·
