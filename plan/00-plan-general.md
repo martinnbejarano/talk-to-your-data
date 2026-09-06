@@ -17,7 +17,7 @@ disponible, lo dice y explica qué falta. Nunca inventa.
 - Chat multi-turno con selector de tenant fijo y visible.
 - Agente con tools de exploración de esquema y ejecución de SQL, con barandas
 estructurales (rol read-only, RLS por tenant, gate de `EXPLAIN`, timeout).
-- Skills semánticas para los ocho conceptos ambiguos del dominio, con golden queries
+- Skills semánticas para los nueve conceptos ambiguos del dominio, con golden queries
 verificadas a mano.
 - Cuatro estados de respuesta (respondida / con supuesto / necesito que aclares /
 no se puede responder).
@@ -25,7 +25,8 @@ no se puede responder).
 en cascada, criterios con el origen del parámetro, exclusiones explícitas y filas
 reales con export; para IT, el SQL y el plan plegados en `▸ Detalle técnico`.
 - Set de evaluación propio con runner y reporte.
-- `README.md`, `DECISIONS.md`, `NOTES/` (log de proceso), `AGENT_LOG.md`, `PRODUCT.md`.
+- `README.md`, `DECISIONS.md`, `CONTEXT.md` (el glosario del dominio), `NOTES/` (log de
+proceso), `AGENT_LOG.md`, `PRODUCT.md`.
 
 ### Afuera (decidido, no olvidado)
 

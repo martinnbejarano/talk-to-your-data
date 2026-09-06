@@ -13,12 +13,17 @@ concepto: riesgo_alto
 nombre_humano: "Cliente de riesgo alto"
 definicion: |
   Un cliente es de riesgo alto si su evaluación vigente supera el umbral
-  configurado por su institución, o si fue marcado manualmente.
-depende_de_config: [high_risk_score_threshold]
+  configurado por su institución, si fue marcado manualmente, o —donde la
+  institución así lo configuró— si es PEP vigente.
+depende_de_config: [high_risk_score_threshold, pep_is_high_risk]
 trampas:
   - El umbral varía por tenant y está versionado en tenant_config.
-  - Hay dos fuentes que pueden contradecirse: score y marca manual.
+  - Las tres fuentes son DISJUNTAS, no se contradicen: la cascada suma.
+  - Omitir la marca manual pierde 1 de cada 4; omitir el PEP, otro 9 %.
   - risk_assessments tiene historia; sólo vale is_current = true.
+  - Borrar un cliente borra su evaluación vigente pero no su historia.
+  - El escalón PEP usa "PEP vigente" y está congelado (D-13): la derivación
+    tiene que declararlo, porque la pregunta directa por PEPs da otro número.
 golden_sql: |
   ...
 derivacion:
@@ -27,6 +32,7 @@ derivacion:
   - "con evaluación de riesgo vigente"
   - "score >= umbral configurado"
   - "+ marcados manualmente como alto"
+  - "+ PEP vigentes (tu institución los cuenta como riesgo alto)"
 exclusiones:
   - "clientes dados de baja"
   - "evaluaciones históricas: sólo cuenta la vigente"
@@ -45,24 +51,34 @@ devolver **un escalón por línea de `derivacion`** —`count(*) FILTER (WHERE .
 todos en una sola pasada del índice— para que ningún número de la cascada sea calculado
 fuera de la base.
 
-## Las ocho skills
+**Una excepción, declarada:** `misma_persona` no tiene una cascada de esta forma. Sus
+escalones **cambian de unidad** —174.669 clientes → 174.342 grupos por documento → 327
+filas duplicadas— y los de D-07 se restan a la vista. Sigue siendo una sola pasada y
+todos los números siguen saliendo de la base, pero la derivación no se lee como una
+resta y la pantalla tiene que decir de qué está hablando en cada línea.
+
+## Las nueve skills
 
 
 | Skill                 | Qué resuelve                                                       | Decisión clave                                                                           |
 | --------------------- | ------------------------------------------------------------------ | ---------------------------------------------------------------------------------------- |
-| `cliente_onboardeado` | "¿Cuántos clientes onboardeamos este año?"                         | Qué hacer con los `APPROVED` sin `onboarded_at`                                          |
-| `riesgo_alto`         | "¿Cuántos clientes de riesgo alto tenemos?"                        | Unión de score vs umbral versionado **y** marca manual                                   |
-| `monto_transado`      | "¿Monto total de los clientes de riesgo alto el último trimestre?" | Desglose por moneda obligatorio; excluir `REVERSED`                                      |
-| `alerta_fuera_de_sla` | "¿Qué alertas están fuera del SLA de revisión?"                    | SLA en horas desde `tenant_config`; incluye las revisadas tarde, no sólo las sin revisar |
-| `hallazgo_real`       | "¿Cuántos hallazgos reales tuvimos el último trimestre?"           | Excluir `CLOSED_FALSE_POSITIVE`; decidir si `ESCALATED` cuenta                           |
-| `pep_confirmado`      | "¿Alguno de nuestros clientes es PEP?"                             | Sólo `CONFIRMED_HIT` con `is_pep`; `DISCARDED` y `POTENTIAL_HIT` no                      |
-| `resolucion_de_casos` | "¿Tiempo promedio de resolución?"                                  | Sólo casos cerrados; reportar cuántos quedaron fuera                                     |
+| `cliente_onboardeado` | "¿Cuántos clientes onboardeamos este año?"                         | Los `APPROVED` sin `onboarded_at` quedan fuera, y se declara con el número (41,9 %)      |
+| `riesgo_alto`         | "¿Cuántos clientes de riesgo alto tenemos?"                        | **Tres** fuentes disjuntas: score vs umbral versionado, marca manual, y PEP vigente donde la perilla lo manda (D-13) |
+| `monto_transado`      | "¿Monto total de los clientes de riesgo alto el último trimestre?" | Desglose por moneda **y por sentido**; sólo `SETTLED`. La respuesta son 8 números, no uno |
+| `alerta_fuera_de_sla` | "¿Qué alertas están fuera del SLA de revisión?"                    | SLA en horas desde `tenant_config`; dos mitades disjuntas, y la de "revisadas tarde" sólo existe donde el plazo es de 24 h |
+| `hallazgo_real`       | "¿Cuántos hallazgos reales tuvimos el último trimestre?"           | Alertas, no casos. Excluir `CLOSED_FALSE_POSITIVE`; `ESCALATED` según la perilla. Tres supuestos declarados (D-12) |
+| `caso_reportado`      | "¿Cuántos casos reportamos a la UIF?"                              | Concepto propio, para que la pregunta no pase por la palabra "hallazgo" (D-12)           |
+| `pep_confirmado`      | "¿Alguno de nuestros clientes es PEP?"                             | Vigente vs histórico (×3,3) es el eje que pesa, y sigue abierto al eval. **Sin** el flag `is_pep` (D-13) |
+| `resolucion_de_casos` | "¿Tiempo promedio de resolución?"                                  | Sólo casos cerrados, y la **antigüedad** de los abiertos como escalón obligatorio        |
 | `misma_persona`       | "¿Qué clientes son probablemente la misma persona?"                | Documento normalizado (D-09), con la limitación declarada                                |
 
 
-Más una **skill transversal de períodos**: `AS_OF = 2026-06-01`, "este año" = calendario
+**Los períodos no son una skill.** No tienen definición de negocio, ni golden query, ni
+derivación, ni exclusiones, y **ninguno de los cinco criterios de validación de abajo les
+aplica**. Son un resolvedor determinístico —`AS_OF = 2026-06-01`, "este año" = calendario
 2026 hasta `AS_OF`, "último trimestre" = ene–mar 2026, y `fiscal_year_start_month` es un
-distractor que **no** redefine estos períodos.
+distractor que **no** los redefine— que vive en el código, con el test rojo que ya pide
+H3.4. El agente recibe esas reglas en su contexto de sistema, no pidiendo una definición.
 
 ## Validación de cada golden query
 
@@ -94,20 +110,28 @@ de riesgo alto, tiene que declararlo como supuesto.
 
 ## Entregables
 
-- `core/semantics/*.yaml` — las ocho skills más la de períodos.
+- `core/semantics/*.yaml` — las nueve skills. Los períodos no van acá: son código.
 - `NOTES/02-semantica.md` — para cada definición: qué alternativas había, cuál elegí,
 y el número que da cada alternativa. *"Con la definición A dan 1.240 clientes, con la
 B dan 1.890"* es exactamente el tipo de cosa que hace defendible una decisión.
-- `DECISIONS.md`: las 6 definiciones pendientes, cerradas.
+- `CONTEXT.md` — el glosario del dominio, que es lo que impide que dos skills usen la
+misma palabra con distinto significado.
+- `DECISIONS.md`: las definiciones pendientes, cerradas salvo "PEP", que se decide con
+el eval y por una razón escrita.
 
 ## Definition of done
 
-- [ ] Las 9 skills escritas y validadas con los 5 criterios.
-- [ ] Cada definición ambigua documentada con el número de sus alternativas.
-- [ ] Ninguna skill supera ~2.000 caracteres (la disciplina de Ramp).
-- [ ] Las 8 preguntas de referencia tienen respuesta correcta calculada a
-
-  mano, para usar como valor esperado en H4.
+- [x] Las 9 skills escritas y validadas con los 5 criterios —
+  `scripts/validar_semantica.py`, que automatiza los cinco (el quinto también).
+- [x] Cada definición ambigua documentada con el número de sus alternativas —
+  `NOTES/02-semantica.md`, sección 1.
+- [x] Ninguna skill supera ~2.000 caracteres (la disciplina de Ramp) — máximo
+  2.019, medido sobre el texto que lee el agente.
+- [x] Ninguna skill usa una palabra que `CONTEXT.md` no defina, ni con otro sentido.
+- [x] Las 8 preguntas de referencia tienen respuesta correcta calculada a
+  mano, para usar como valor esperado en H4 — `evals/valores_esperados.yaml`,
+  cada una por dos caminos independientes. Son 9: `caso_reportado` se desprendió
+  de "hallazgo real" al separarla en dos conceptos (D-12).
 
 ## Riesgos
 
