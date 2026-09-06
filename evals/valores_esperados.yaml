@@ -1,0 +1,331 @@
+_generado: scripts/valores_esperados.py · 2026-09-06 · AS_OF=2026-06-01
+_nota: 'Cada valor sale de la golden query de su skill Y de una consulta escrita de otra forma (verificacion_sql).
+  Los dos caminos coinciden: eso es lo que hace creíble el número. Regenerar con el script, no editar
+  a mano.'
+preguntas:
+- concepto: alerta_fuera_de_sla
+  pregunta: ¿Qué alertas están fuera del SLA de revisión?
+  resultado: fuera_de_sla
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 9339
+      derivacion:
+        total: 30605
+        activas: 30605
+        sin_revisar: 7199
+        sin_revisar_vencidas: 4499
+        revisadas_tarde: 4840
+        fuera_de_sla: 9339
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 199
+      derivacion:
+        total: 1357
+        activas: 1357
+        sin_revisar: 319
+        sin_revisar_vencidas: 199
+        revisadas_tarde: 0
+        fuera_de_sla: 199
+- concepto: caso_reportado
+  pregunta: ¿Cuántos casos reportamos a la UIF el último trimestre?
+  resultado: reportados_en_periodo
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 355
+      derivacion:
+        total: 5400
+        activos: 5400
+        reportados: 810
+        reportados_en_periodo: 355
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 12
+      derivacion:
+        total: 243
+        activos: 243
+        reportados: 36
+        reportados_en_periodo: 12
+- concepto: cliente_onboardeado
+  pregunta: ¿Cuántos clientes onboardeamos este año?
+  resultado: altas_del_periodo
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 18001
+      derivacion:
+        total: 180000
+        activos: 174669
+        aprobados: 107250
+        con_fecha_de_alta: 62669
+        altas_del_periodo: 18001
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 799
+      derivacion:
+        total: 8000
+        activos: 7771
+        aprobados: 4759
+        con_fecha_de_alta: 2803
+        altas_del_periodo: 799
+- concepto: hallazgo_real
+  pregunta: ¿Cuántos hallazgos reales tuvimos el último trimestre?
+  resultado: hallazgos
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 5404
+      derivacion:
+        total: 30605
+        del_periodo: 13333
+        confirmadas: 3602
+        escaladas: 1802
+        hallazgos: 5404
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 159
+      derivacion:
+        total: 1357
+        del_periodo: 591
+        confirmadas: 159
+        escaladas: 0
+        hallazgos: 159
+- concepto: misma_persona
+  pregunta: ¿Qué clientes son probablemente la misma persona?
+  resultado: personas_repetidas
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 307
+      derivacion:
+        total: 180000
+        activos: 174669
+        con_documento: 174669
+        personas_distintas: 174342
+        personas_repetidas: 307
+        legajos_repetidos: !!float '634'
+      desglose:
+      - document_type: CDI
+        documento: '20165129448'
+        legajos: '3'
+        ids: '[401236, 401237, 401238]'
+      - document_type: CUIT
+        documento: '20359645994'
+        legajos: '3'
+        ids: '[401051, 401052, 401053]'
+      - document_type: PASSPORT
+        documento: '20414925265'
+        legajos: '3'
+        ids: '[400026, 400027, 400028]'
+      - document_type: PASSPORT
+        documento: '21002777878'
+        legajos: '3'
+        ids: '[399726, 399727, 399728]'
+      - document_type: CDI
+        documento: '21233779403'
+        legajos: '3'
+        ids: '[400481, 400482, 400483]'
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 17
+      derivacion:
+        total: 8000
+        activos: 7771
+        con_documento: 7771
+        personas_distintas: 7751
+        personas_repetidas: 17
+        legajos_repetidos: !!float '37'
+      desglose:
+      - document_type: DNI
+        documento: '23004105172'
+        legajos: '3'
+        ids: '[991765, 991766, 991767]'
+      - document_type: PASSPORT
+        documento: '24060439409'
+        legajos: '3'
+        ids: '[991770, 991771, 991772]'
+      - document_type: DNI
+        documento: '24143346780'
+        legajos: '3'
+        ids: '[991775, 991776, 991777]'
+      - document_type: DNI
+        documento: '20168621563'
+        legajos: '2'
+        ids: '[991828, 991829]'
+      - document_type: PASSPORT
+        documento: '20429489183'
+        legajos: '2'
+        ids: '[991825, 991827]'
+- concepto: monto_transado
+  pregunta: ¿Cuál fue el monto total transado por los clientes de riesgo alto el último trimestre?
+  resultado: liquidadas
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 31436
+      derivacion:
+        total: 1080005
+        activas: 1050419
+        del_segmento: 39295
+        liquidadas: 31436
+      desglose:
+      - currency: ARS
+        direction: IN
+        operaciones: '11747'
+        monto: '11747000.00'
+      - currency: ARS
+        direction: OUT
+        operaciones: '11830'
+        monto: '11830000.00'
+      - currency: USD
+        direction: IN
+        operaciones: '7859'
+        monto: '1571800.00'
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: 1284
+      derivacion:
+        total: 48450
+        activas: 47199
+        del_segmento: 1605
+        liquidadas: 1284
+      desglose:
+      - currency: ARS
+        direction: IN
+        operaciones: '485'
+        monto: '485000.00'
+      - currency: ARS
+        direction: OUT
+        operaciones: '478'
+        monto: '478000.00'
+      - currency: USD
+        direction: IN
+        operaciones: '321'
+        monto: '64200.00'
+- concepto: pep_confirmado
+  pregunta: ¿Alguno de nuestros clientes es PEP?
+  resultado: pep_vigente
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 660
+      derivacion:
+        total: 180000
+        activos: 174669
+        con_screening: 174669
+        pep_historico: 2161
+        pep_vigente: 660
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 28
+      derivacion:
+        total: 8000
+        activos: 7771
+        con_screening: 7771
+        pep_historico: 95
+        pep_vigente: 28
+- concepto: resolucion_de_casos
+  pregunta: ¿Cuál es el tiempo promedio de resolución de casos?
+  resultado: dias_promedio_cerrados
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: &id001 2.73
+      derivacion:
+        total: 5400
+        del_periodo: 2062
+        cerrados: 997
+        abiertos: 1065
+        dias_promedio_cerrados: *id001
+        dias_antiguedad_abiertos: 91.37
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-04-01'
+      valor_esperado: &id002 2.75
+      derivacion:
+        total: 243
+        del_periodo: 92
+        cerrados: 44
+        abiertos: 48
+        dias_promedio_cerrados: *id002
+        dias_antiguedad_abiertos: 90.13
+- concepto: riesgo_alto
+  pregunta: ¿Cuántos clientes de riesgo alto tenemos?
+  resultado: riesgo_alto
+  por_institucion:
+    banco_andino:
+      tenant_id: 3
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 7859
+      derivacion:
+        total: 180000
+        activos: 174669
+        con_evaluacion: 174669
+        por_score: 5399
+        por_marca: 1800
+        por_pep: 660
+        riesgo_alto: 7859
+    fintech_cuyo:
+      tenant_id: 14
+      periodo:
+      - '2026-01-01'
+      - '2026-06-01'
+      valor_esperado: 321
+      derivacion:
+        total: 8000
+        activos: 7771
+        con_evaluacion: 7771
+        por_score: 240
+        por_marca: 81
+        por_pep: 0
+        riesgo_alto: 321
