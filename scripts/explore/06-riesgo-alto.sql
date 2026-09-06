@@ -60,3 +60,36 @@ SELECT vigentes_por_cliente, count(*) AS clientes FROM (
     SELECT client_id, count(*) FILTER (WHERE is_current) AS vigentes_por_cliente
     FROM risk_assessments GROUP BY tenant_id, client_id) t
 GROUP BY 1 ORDER BY 1;
+
+\echo '--- 06.5 · la perilla pep_is_high_risk: ¿los PEPs agregan clientes? ---'
+-- `pep_is_high_risk` está en tenant_config, no la documenta el diccionario, y
+-- vale true en 20 tenants y false en los otros 20. Donde vale true, un PEP es
+-- riesgo alto por sí solo. La pregunta es cuántos NO estaban ya cubiertos por
+-- score o por marca manual.
+WITH umbral AS (
+    SELECT DISTINCT ON (tenant_id) tenant_id, (value #>> '{}')::int AS v
+    FROM tenant_config
+    WHERE key = 'high_risk_score_threshold' AND effective_from_date <= '2026-06-01'
+    ORDER BY tenant_id, effective_from_date DESC),
+pep_vigente AS (
+    -- el screening MÁS RECIENTE del cliente, no cualquiera: ver 08.4
+    SELECT DISTINCT ON (tenant_id, client_id) tenant_id, client_id, result
+    FROM screenings WHERE tenant_id IN (3, 14)
+    ORDER BY tenant_id, client_id, screened_at DESC, id DESC),
+base AS (
+    SELECT c.tenant_id,
+           (r.score >= u.v)                          AS por_score,
+           c.manual_high_risk_flag                   AS por_flag,
+           coalesce(p.result = 'CONFIRMED_HIT', false) AS pep_vigente
+    FROM clients c
+    JOIN umbral u ON u.tenant_id = c.tenant_id
+    JOIN risk_assessments r ON r.tenant_id = c.tenant_id AND r.client_id = c.id
+                           AND r.is_current AND r.deleted_at IS NULL
+    LEFT JOIN pep_vigente p ON p.tenant_id = c.tenant_id AND p.client_id = c.id
+    WHERE c.deleted_at IS NULL AND c.tenant_id IN (3, 14))
+SELECT tenant_id,
+       count(*) FILTER (WHERE por_score OR por_flag)                       AS riesgo_alto_sin_pep,
+       count(*) FILTER (WHERE pep_vigente)                                 AS peps_vigentes,
+       count(*) FILTER (WHERE pep_vigente AND NOT (por_score OR por_flag)) AS peps_que_agregan,
+       count(*) FILTER (WHERE por_score OR por_flag OR pep_vigente)        AS riesgo_alto_con_pep
+FROM base GROUP BY 1 ORDER BY 1;

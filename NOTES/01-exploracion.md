@@ -29,7 +29,7 @@ Cinco cosas que daba por ciertas y no lo eran:
 |---|---|
 | El soft-delete es parejo y hay que excluirlo siempre | Sólo 4 de las 8 tablas con `deleted_at` tienen filas borradas. En `alerts`, `cases`, `screenings` y `client_risk_overrides` el filtro no cambia ni un número |
 | `alert_case_links` es el vínculo alerta↔caso que faltaba | Es un señuelo: `alert_id` es una **copia de `case_id`** en las 10.629 filas. El vínculo **no existe** en la base |
-| Las dos fuentes de "riesgo alto" se contradicen y hay que medir cuánto | Son **disjuntas por construcción**: 0 clientes en la intersección, en las 40 instituciones |
+| Las dos fuentes de "riesgo alto" se contradicen y hay que medir cuánto | Son **disjuntas por construcción**: 0 clientes en la intersección, en las 40 instituciones. Y son **tres**, no dos: donde `pep_is_high_risk` está en `true` los PEP vigentes agregan un escalón más, también disjunto |
 | El `AS_OF` vale para toda la base (H0 lo verificó) | Vale para `transactions`. Hay **70.000 filas con fecha posterior** en otras dos columnas |
 | Sin foreign keys, cualquier join puede tener huérfanos | Las relaciones documentadas están **perfectamente limpias**. Las dos únicas rotas son las dos tablas puente no documentadas |
 
@@ -379,8 +379,25 @@ saber dar.
 **`pep_is_high_risk`** (clave de `tenant_config` que el diccionario no menciona).
 Ésta sí es una fuente real y es **configurable por institución**: 20 tenants en
 `true`, 20 en `false`. Donde está en `true`, un PEP confirmado cuenta como riesgo
-alto por sí solo, con independencia del score. Queda como decisión abierta para
-H2 y está anotada en la sección 9.
+alto por sí solo, con independencia del score.
+
+Lo medí (`06-riesgo-alto.sql`, 06.5) y **es una tercera fuente disjunta de las
+otras dos**: de los 660 PEPs vigentes del tenant 3, los **660** agregan clientes
+que ni el score ni la marca manual ya cubrían. Cero solapamiento otra vez.
+
+| | tenant 3 (`pep_is_high_risk = true`) | tenant 14 (`false`) |
+|---|---:|---:|
+| por score **o** marca manual | 7.199 | 321 |
+| PEPs vigentes, ninguno ya cubierto | +660 | +28 |
+| **riesgo alto según la config del tenant** | **7.859** | **321** |
+
+O sea que **"riesgo alto" tiene tres escalones, no dos**, y el tercero se prende
+o se apaga por institución. Es exactamente la cascada que pide D-07, y como las
+tres fuentes son disjuntas los escalones suman sin nota al pie.
+
+Queda una decisión abierta que no es de data sino de producto: si la perilla del
+tenant manda sola, o si igual conviene mostrar los dos números. Va a H2, anotada
+en la sección 9.
 
 ### Trampa 13: sí, hay exactamente una evaluación vigente por cliente
 
@@ -873,6 +890,24 @@ entrar, el fixture cubre el segundo.
 Los 47 tests de la suite pasan con el par nuevo, sin tocar ningún test: los IDs
 no están escritos en ninguna parte, que era exactamente el punto.
 
+### Un control que me debía: explorar sin RLS y responder con RLS
+
+Toda esta exploración corrió como `postgres`, sin RLS, con un `WHERE tenant_id IN
+(3, 14)` escrito a mano. El producto va a leer con `agent_ro` y el predicado de la
+policy. Que los planes sean equivalentes ya lo había medido H0, pero **que los
+números sean idénticos** no lo había verificado nunca. Lo comprobé con
+`agent_connection` sobre cuatro cifras clave:
+
+| | tenant 3 | tenant 14 |
+|---|---|---|
+| riesgo alto (unión) | 7.199 ✓ | 321 ✓ |
+| casos sin cerrar | 2.161 ✓ | 98 ✓ |
+| PEP alguna vez confirmado | 2.161 ✓ | 95 ✓ |
+
+Coinciden las seis. No es una formalidad: si la policy tuviera un `NULL` mal
+manejado o una tabla sin RLS, acá aparecería como una diferencia y no como un
+error.
+
 ---
 
 ## 9. Las seis definiciones pendientes: cuatro cerradas, dos abiertas
@@ -881,7 +916,7 @@ Estado de la tabla "Definiciones a fijar" de `DECISIONS.md` después de explorar
 
 | concepto | estado | definición |
 |---|---|---|
-| **Riesgo alto** | ✅ **cerrada** | `score >= umbral vigente al AS_OF` **o** `manual_high_risk_flag`, sobre clientes vivos con evaluación vigente viva. Las dos fuentes son **disjuntas** (0 solapamiento en 40 tenants): la suma no dobla-cuenta. La marca manual aporta un 25 % del total |
+| **Riesgo alto** | ⚠️ **cerrada salvo la perilla** | `score >= umbral vigente al AS_OF` **o** `manual_high_risk_flag`, sobre clientes vivos con evaluación vigente viva; **más los PEP vigentes donde `pep_is_high_risk` está en `true`**. Las **tres** fuentes son disjuntas (0 solapamiento): la cascada suma sin nota al pie. La marca aporta el 25 % y el PEP otro 9 % |
 | **Resolución de casos** | ✅ **cerrada** | `closed_at - opened_at` **sólo sobre casos con `closed_at`**, que son los de status `CLOSED` **y `REPORTED_UIF`**. Se reporta cuántos quedan fuera (el 40 %). Los abiertos son N/A, ni cero ni "hasta hoy" |
 | **Fuera de SLA** | ✅ **cerrada** | Dos poblaciones, las dos necesarias: sin revisar con `AS_OF - triggered_at > sla`, más revisadas con `first_reviewed_at - triggered_at > sla`. El plazo es `tenant_config.review_sla_hours` |
 | **Cliente onboardeado** | ⚠️ **con supuesto** | `APPROVED` con `onboarded_at` en el período. Los **307.444 aprobados sin fecha (41,9 %)** quedan fuera y hay que **declararlo con el número**. No es cerrarla: es elegir la única lectura que responde la pregunta y decir qué costó |
@@ -902,8 +937,8 @@ sería tirar los dos casos de prueba más valiosos que tiene la base.
 |---|---|
 | Las 8 definiciones/skills, con sus golden queries en los tenants 3 y 14 | H2 |
 | **`screenings` está historizada sin `is_current`**: hay que decidir si "PEP" mira el screening vigente o cualquiera. Es el eje más pesado de esa definición (×3,3) | H2 |
+| Decidir si `pep_is_high_risk` manda sola o si conviene mostrar el número con y sin PEPs (en el tenant 3 son 7.859 contra 7.199) | H2 / H3 · panel de D-07 |
 | `sum(amount)` suma entradas y salidas: el desglose por `direction` es tan obligatorio como el de moneda | H2 |
-| Decidir `pep_is_high_risk`: ¿un PEP confirmado es riesgo alto por sí solo donde la config dice `true`? | H2 |
 | Decidir "hallazgo real" y "PEP" contra el eval | H2 / H4 |
 | **El gate de `EXPLAIN` no puede rechazar `Seq Scan` a secas**: para las 5 tablas sin índice es el único plan, y cuesta 55–170 ms | H3 · gate de D-06 |
 | Preguntas incontestables ya identificadas: alerta↔caso, sanciones/listas que no sean `PEP_AR`, conversión de monedas, "a qué se overrideó el riesgo", casos antes de ago-2025 | H4 · set de evals |
