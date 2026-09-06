@@ -195,6 +195,52 @@ Acá es literal: el sistema **es** la base de datos.
 más útiles. El detalle de cómo escribimos cada uno está en
 [`plan/testing.md`](plan/testing.md).
 
+## D-12 · "Hallazgo" nombra alertas; los casos reportados son otro concepto
+
+**Qué decidimos.** `hallazgo_real` cuenta **alertas cerradas como verdadero positivo**
+(más las escaladas, según la perilla del tenant). Los casos que terminaron en un reporte
+a la UIF se responden con una skill propia, `caso_reportado`, que nunca usa la palabra
+"hallazgo".
+
+**Por qué.** H2 descubrió que la palabra nombra dos poblaciones y que difieren por
+**quince**: en el tenant 3, ene–mar 2026, hay 3.602 alertas ciertas contra 247 casos
+reportados. Elegimos el lado de las alertas porque es el único que la consigna define
+—*"un falso positivo cerrado no es un hallazgo real"* habla del ciclo de vida de una
+alerta— y porque *"¿cuántos hallazgos reales tuvimos?"* es una de las ocho preguntas que
+el sistema tiene que saber contestar: repreguntar siempre ahí sería **falsa ambigüedad**,
+que es una métrica que medimos y que hace que un sistema se abandone.
+
+**Estado de la respuesta: `RESPONDIDA_CON_SUPUESTO`.** Y el supuesto son tres cosas, las
+tres declaradas: (a) que cuenta alertas cerradas como verdadero positivo; (b) si las
+escaladas entran, según `escalated_counts_as_finding`; (c) que **no** incluye los casos
+reportados a la UIF, y que las dos poblaciones **no se pueden cruzar** porque el vínculo
+alerta↔caso no existe en la base (trampa 10).
+
+**Qué cuesta.** La respuesta más chica —los 247— nunca sale sola de esta pregunta. Sale
+de la otra skill, que existe para eso.
+
+## D-13 · Una perilla de configuración resuelve a una población determinística
+
+**Qué decidimos.** Donde `pep_is_high_risk` está en `true`, el tercer escalón de riesgo
+alto usa **PEP vigente** (el screening más reciente del cliente es un hit confirmado) y
+esa definición queda **congelada**, aunque la pregunta directa *"¿tenemos PEPs?"* siga
+abierta al eval (D-10).
+
+**Por qué.** El escalón heredaba la ambigüedad de "PEP" y eso movía la pregunta de
+referencia de H3 un 23 % — de 7.603 a 9.360 clientes en el tenant 3. Una perilla de
+configuración de la institución tiene que resolver a una población determinística: **un
+padrón de riesgo que depende de una repregunta no es un padrón.**
+
+**Por qué esa definición y no `CONFIRMED_HIT AND is_pep`.** La única lista presente en
+los datos es `PEP_AR`, así que un hit confirmado ya es un match de PEP por construcción.
+Y `is_pep` nunca vale `false`: cuando no aplica, la clave falta — hay **5.698 hits
+confirmados contra `PEP_AR` sin el flag**. Filtrar por esa clave descarta PEPs reales por
+un campo ausente, no PEPs falsos.
+
+**Consecuencia que hay que manejar.** En una misma sesión, el escalón de riesgo alto va a
+usar 660 PEPs y la pregunta directa puede contestar 2.161. No es una inconsistencia, pero
+lo parece: **la derivación tiene que declarar qué definición de PEP usó el escalón.**
+
 ---
 
 ## Trampas del dataset
@@ -247,19 +293,29 @@ Estado después de H1. Cuatro cerradas, dos abiertas a propósito.
 
 | Concepto                | Estado             | Definición                                                                                                                                                                                        |
 | ----------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Riesgo alto**         | ⚠️ cerrada salvo la perilla | `score >= umbral vigente al AS_OF` **o** `manual_high_risk_flag`, sobre clientes vivos con evaluación vigente viva; **más los PEP vigentes donde `pep_is_high_risk` está en `true`**. Las **tres** fuentes son disjuntas: la cascada suma sin nota al pie |
-| **Resolución de casos** | ✅ cerrada          | `closed_at - opened_at` sólo sobre casos con `closed_at`, que son los de status `CLOSED` **y `REPORTED_UIF`** (los dos son terminales). Se reporta cuántos quedan fuera                             |
+| **Riesgo alto**         | ✅ cerrada          | `score >= umbral vigente al AS_OF` **o** `manual_high_risk_flag`, sobre clientes vivos con evaluación vigente viva; **más los PEP vigentes donde `pep_is_high_risk` está en `true`**. Las **tres** fuentes son disjuntas: la cascada suma sin nota al pie. El escalón PEP queda congelado por D-13 |
+| **Resolución de casos** | ✅ cerrada          | `closed_at - opened_at` sólo sobre casos con `closed_at`, que son los de status `CLOSED` **y `REPORTED_UIF`** (los dos son terminales). La **antigüedad de los abiertos** es un escalón obligatorio de la derivación, no sólo su conteo |
 | **Fuera de SLA**        | ✅ cerrada          | Dos poblaciones, las dos necesarias: sin revisar con `AS_OF - triggered_at > sla`, más revisadas con `first_reviewed_at - triggered_at > sla`. El plazo es `tenant_config.review_sla_hours`         |
 | **Cliente onboardeado** | ⚠️ con supuesto    | `APPROVED` con `onboarded_at` en el período. Los 307.444 aprobados sin fecha quedan fuera y **hay que declararlo con el número**                                                                    |
-| **Hallazgo real**       | 🔓 abierta          | `CLOSED_TRUE_POSITIVE` seguro. Las `ESCALATED` dependen de `tenant_config.escalated_counts_as_finding`, que existe y varía 20/20. La diferencia es **+50 %**                                        |
-| **PEP**                 | 🔓 abierta          | Descartada la lectura floja (`is_pep` sin mirar `result`). Quedan cuatro sobre **dos ejes**: el flag `is_pep` (×1,7) y si vale el screening **vigente** o cualquiera de los 4-5 históricos (×3,3). En el tenant 3 va de 2.161 a 404 |
+| **Hallazgo real**       | ⚠️ con supuesto    | Alertas `CLOSED_TRUE_POSITIVE`, más las `ESCALATED` según `tenant_config.escalated_counts_as_finding` (+50 %). **No** incluye los casos reportados a la UIF, y las dos poblaciones no se pueden cruzar. Los tres supuestos se declaran (D-12) |
+| **Caso reportado**      | ✅ cerrada          | Casos con status `REPORTED_UIF`. Concepto propio, uno a uno con `sar_reports`. Existe para que la pregunta se conteste directo sin pasar por la palabra "hallazgo" (D-12)                           |
+| **PEP**                 | 🔓 abierta **sólo para la pregunta directa** | Descartada la lectura floja (`is_pep` sin mirar `result`). El eje que pesa es si vale el screening **vigente** o cualquiera de los 4-5 históricos (×3,3): en el tenant 3, 660 contra 2.161. Como escalón de riesgo alto ya está congelada en "vigente" (D-13) |
 
 
-Las dos abiertas lo están por la misma razón: **las dos tienen una perilla en
-`tenant_config` o una ambigüedad real en la data, y son los mejores candidatos del
-dataset para ejercer los estados `RESPONDIDA_CON_SUPUESTO` y `NECESITO_QUE_ACLARES`.**
-Cerrarlas a dedo ahora sería tirar los dos casos de prueba más valiosos que hay.
-Se deciden con el eval (D-10).
+**Queda una sola abierta, y por una buena razón.** "PEP" tiene una ambigüedad real en la
+data —el screening está historizado y no trae marcado cuál vale hoy— y es el mejor
+candidato del dataset para ejercer `NECESITO_QUE_ACLARES`: *"¿te referís a los que hoy
+figuran como PEP (660) o a los que alguna vez dieron positivo (2.161)?"* es una
+repregunta que un oficial entiende y que cambia el número por tres. Se decide con el
+eval (D-10).
+
+Las otras dos que estaban abiertas se cerraron en H2 y **no** por decisión de escritorio:
+"hallazgo real" resultó tener un segundo eje 15× más grande que el conocido (D-12), y el
+escalón PEP de "riesgo alto" resultó heredar una ambigüedad que una perilla de
+configuración no puede tener (D-13). Las dos siguen ejerciendo
+`RESPONDIDA_CON_SUPUESTO`, que era lo que se quería preservar; lo que se descartó es que
+ejercieran `NECESITO_QUE_ACLARES`, porque en las dos **repreguntar sería falsa
+ambigüedad**: son preguntas del enunciado que el sistema tiene que saber contestar.
 
 ### Preguntas incontestables que la exploración ya identificó
 
