@@ -92,6 +92,11 @@ significa nada accionable.
 rechaza si va a recorrer una tabla grande entera. El motivo del rechazo vuelve al agente
 para que reintente.
 
+**"Tabla grande" es `reltuples >= 100k`**, el mismo corte que ya usan
+[`tests/test_planes.py`](tests/test_planes.py) y [`tests/test_aislamiento.py`](tests/test_aislamiento.py), uno de cada lado. Debajo de ese
+corte el recorrido completo es legítimo: las cinco tablas sin índice por `tenant_id`
+no tienen otro plan posible y cuestan entre 55 y 170 ms (`NOTES/01-exploracion.md`).
+
 **Por qué.** La base corta cualquier consulta a los 15 segundos. Esperar el corte le da
 al agente una señal pobre y tarde; el plan le dice *por qué* estuvo mal, en
 milisegundos. Es, además, como trabaja un analista de verdad.

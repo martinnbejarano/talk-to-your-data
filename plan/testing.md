@@ -67,7 +67,7 @@ Partición por clase de equivalencia, con el paso 4 explícito en cada fila:
 | Clase | Tipo | Qué verifica | Qué cambio lo haría fallar |
 |---|---|---|---|
 | Aislamiento por tenant | Integración | Sin `app.tenant_id` → 0 filas; con → un solo tenant; escrituras denegadas | Sacar la policy de RLS o darle `BYPASSRLS` al rol |
-| Gate de `EXPLAIN` | Localizado | Rechaza seq scan, multi-statement y no-`SELECT`; acepta index scan | Aflojar el umbral de costo o sacar el chequeo de plan |
+| Gate de `EXPLAIN` | Localizado | Rechaza **recorrer entera una tabla grande** (`reltuples >= 100k`, el corte de D-06), multi-statement y no-`SELECT`; acepta index scan, y también el seq scan sobre una tabla chica —para las cinco sin índice por `tenant_id` es el único plan posible y cuesta 55-170 ms | Aflojar el umbral de costo o sacar el chequeo de plan |
 | Trazabilidad de números | Unitario | Toda cifra de la respuesta está en el trace | Permitir que el modelo calcule |
 | Resolución de períodos | Unitario | "este año" → `[2026-01-01, 2026-06-01]`; "último trimestre" → `[2026-01-01, 2026-03-31]` | Usar `now()`, o dejar que `fiscal_year_start_month` corra el período |
 | Golden queries | Integración | Cada una corre en los 2 tenants, bajo timeout, usando índice | Cambiar una definición sin actualizar su golden |

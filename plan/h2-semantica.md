@@ -73,8 +73,12 @@ Ninguna skill se da por buena sin esto:
 3. Su `EXPLAIN` usa índice, no seq scan.
 4. El resultado se cruza a mano contra una consulta escrita de otra forma — si dos
  caminos distintos dan el mismo número, el número es creíble.
-5. Excluye soft-deletes y está scopeada por tenant (aunque RLS ya lo garantice: la
- query tiene que ser correcta *también* leída sola).
+5. Excluye soft-deletes **en todas las tablas del join, no sólo en la principal**, y
+ está scopeada por tenant (aunque RLS ya lo garantice: la query tiene que ser
+ correcta *también* leída sola). Lo primero no es celo: borrar un cliente **no**
+ borra sus evaluaciones de riesgo, y quedan 103.146 vivas colgando de clientes
+ borrados. Filtrar sólo por `risk_assessments.deleted_at IS NULL` los deja entrar
+ con un score viejo (trampa 13, `NOTES/01-exploracion.md`).
 
 ## Cómo las usa el agente
 
