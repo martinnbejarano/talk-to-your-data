@@ -194,42 +194,80 @@ más útiles. El detalle de cómo escribimos cada uno está en
 
 ## Trampas del dataset
 
-Detectadas leyendo el diccionario, **antes** de tocar la base. Cada una hay que
-confirmarla contra la data real, y cada una es a la vez una definición y un caso de
-evaluación.
+Detectadas leyendo el diccionario, **antes** de tocar la base. H1 las midió una por
+una contra la data real; el detalle y las consultas están en
+[`NOTES/01-exploracion.md`](NOTES/01-exploracion.md) y `scripts/explore/`.
 
 
-| #   | Trampa                                                                      | Si se ignora                                           |
-| --- | --------------------------------------------------------------------------- | ------------------------------------------------------ |
-| 1   | Las filas borradas siguen en la tabla                                       | Conteos inflados                                       |
-| 2   | "Hoy" es el 1-jun-2026, no la fecha real                                    | Cero resultados                                        |
-| 3   | "Último trimestre" es calendario; el año fiscal del tenant es un distractor | Período equivocado                                     |
-| 4   | La configuración por institución está versionada en el tiempo               | Umbral viejo                                           |
-| 5   | No hay tipos de cambio                                                      | Un total que no significa nada                         |
-| 6   | Las transacciones revertidas no son movimiento efectivo                     | Volumen inflado                                        |
-| 7   | Un match descartado por el analista no es un PEP real                       | PEPs que no son PEPs                                   |
-| 8   | Una alerta cerrada como falso positivo no es un hallazgo                    | Hallazgos inflados                                     |
-| 9   | Un caso abierto no tiene tiempo de resolución: es N/A, no cero              | Promedio sesgado                                       |
-| 10  | El vínculo entre alertas y casos no está donde parece                       | Join vacío o inventado                                 |
-| 11  | El número de documento no está normalizado                                  | Falla la detección de repetidos                        |
-| 12  | Un cliente aprobado puede no tener fecha de alta                            | Altas subcontadas                                      |
-| 13  | Hay exactamente una evaluación de riesgo vigente por cliente                | Consultas innecesariamente lentas                      |
-| 14  | Hay instituciones dadas de baja                                             | Depende de la pregunta: hay que decidirlo y declararlo |
-| 15  | El riesgo alto vive en dos lugares que pueden contradecirse                 | Definición inventada por el agente                     |
-| 16  | Hay tablas y valores que el diccionario no documenta                        | Hay que explorar antes de suponer                      |
+| #   | Trampa                                                                      | Estado                | Lo que dice la data                                                                                             |
+| --- | --------------------------------------------------------------------------- | --------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 1   | Las filas borradas siguen en la tabla                                       | **matizada**          | Sólo 4 de las 8 tablas con `deleted_at` tienen borradas. Pero los marcados como riesgo alto se borran 13× más que el promedio: el 37,5 % contra el 2,88 % |
+| 2   | "Hoy" es el 1-jun-2026, no la fecha real                                    | **confirmada, con excepción** | El `AS_OF` es la fecha correcta, pero "no hay datos posteriores" es falso: 733 `clients.deleted_at` y 69.215 `client_documents.uploaded_at` lo superan |
+| 3   | "Último trimestre" es calendario; el año fiscal del tenant es un distractor | **confirmada**        | `fiscal_year_start_month` toma 5 valores (1, 3, 4, 7, 10) y no redefine nada                                    |
+| 4   | La configuración por institución está versionada en el tiempo               | **confirmada**        | Sólo 3 tenants de 40 la tienen versionada. Tomar la versión vieja infla **9,6×** (5.399 → 51.962)               |
+| 5   | No hay tipos de cambio                                                      | **confirmada**        | Y los **40** tenants operan en las 4 monedas: no existe el caso mono-moneda                                     |
+| 6   | Las transacciones revertidas no son movimiento efectivo                     | **confirmada**        | `REVERSED` es el 20,0 % y `PENDING` otro 19,9 %. Contar todo infla el volumen **66 %**                          |
+| 7   | Un match descartado por el analista no es un PEP real                       | **confirmada y peor** | `is_pep` nunca vale `false` (falta la clave). Y hay 5.698 `CONFIRMED_HIT` contra `PEP_AR` **sin** el flag       |
+| 8   | Una alerta cerrada como falso positivo no es un hallazgo                    | **confirmada**        | `CLOSED_FALSE_POSITIVE` es el 34,8 %. Contar todas infla **2,3×**                                               |
+| 9   | Un caso abierto no tiene tiempo de resolución: es N/A, no cero              | **confirmada**        | El 40 % está sin cerrar. El promedio va de 2,71 a 25,97 días según qué se haga con ellos: **9,6×**              |
+| 10  | El vínculo entre alertas y casos no está donde parece                       | **desmentida: no existe** | `alerts.case_id` está 100 % en NULL y `alert_case_links.alert_id` es **una copia de `case_id`** en las 10.629 filas. Sólo "funciona" en el tenant 1, por superposición de rangos de id |
+| 11  | El número de documento no está normalizado                                  | **confirmada**        | Dos formatos, mitad y mitad. Normalizar multiplica por **3,6** los duplicados detectados (327 contra 90)        |
+| 12  | Un cliente aprobado puede no tener fecha de alta                            | **confirmada, y grande** | **307.444 de 733.551 aprobados (41,9 %)** no tienen `onboarded_at`                                           |
+| 13  | Hay exactamente una evaluación de riesgo vigente por cliente                | **confirmada**        | 1 por cliente, sin excepciones. Pero borrar un cliente sólo borra su fila vigente: quedan 103.146 evaluaciones vivas de clientes borrados |
+| 14  | Hay instituciones dadas de baja                                             | **confirmada**        | 2 de 40, las dos con datos y las dos con nombre casi homónimo de una activa                                     |
+| 15  | El riesgo alto vive en dos lugares que pueden contradecirse                 | **desmentida: son disjuntos** | **0 clientes** en la intersección, en las 40 instituciones. No se contradicen: se suman. La marca manual aporta el 25 % del total |
+| 16  | Hay tablas y valores que el diccionario no documenta                        | **confirmada**        | 9 tablas, 7 enums sin `CHECK`, y 3 claves de `tenant_config` — dos de ellas perillas de negocio que cambian respuestas enteras |
 
 
-## Definiciones a fijar (pendientes de validar)
+### Las tres tablas puente que parecen servir y no sirven
+
+Hallazgo de H1 que no estaba previsto en ninguna trampa: **el esquema no tiene ni
+una foreign key**, y eso separa las relaciones en dos grupos nítidos. Las ocho
+documentadas están perfectas —cero huérfanos, cero cruces de institución, sobre
+84 millones de filas—. Las dos tablas puente **no** documentadas están rotas:
+
+| tabla | qué le pasa |
+| ----- | ----------- |
+| `alert_case_links` | `alert_id` es una copia de `case_id`. El vínculo alerta↔caso no existe |
+| `transaction_counterparties` | `transaction_id` apunta al azar (acierta el 15,09 %, que es la cuota del tenant 1). Y encima es redundante: `transactions.counterparty_name` nunca es NULL |
+| `client_risk_overrides` | Registra que hubo un override pero **no a qué valor**: no tiene columna de score ni de nivel. No puede definir riesgo |
+
+Las tres tienen el nombre exacto de lo que uno busca. Son señuelos, y la respuesta
+correcta a las preguntas que las necesitan es `NO_SE_PUEDE_RESPONDER`.
+
+## Definiciones a fijar
+
+Estado después de H1. Cuatro cerradas, dos abiertas a propósito.
 
 
-| Concepto            | Definición propuesta                                        | A confirmar                           |
-| ------------------- | ----------------------------------------------------------- | ------------------------------------- |
-| Cliente onboardeado | Aprobado, con fecha de alta dentro del período              | Qué hacer con los aprobados sin fecha |
-| Riesgo alto         | Score sobre el umbral vigente **o** marca manual            | Cuánto se solapan las dos fuentes     |
-| Hallazgo real       | Alertas cerradas como verdadero positivo, más las escaladas | Si una escalada sin cerrar cuenta     |
-| PEP                 | Match confirmado marcado como PEP                           | La forma real del dato                |
-| Fuera de SLA        | Sin revisar pasado el plazo, más las revisadas tarde        | Dónde está configurado el plazo       |
-| Resolución de casos | Cierre menos apertura, sólo sobre casos cerrados            | Reportar cuántos quedan fuera         |
+| Concepto                | Estado             | Definición                                                                                                                                                                                        |
+| ----------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Riesgo alto**         | ✅ cerrada          | `score >= umbral vigente al AS_OF` **o** `manual_high_risk_flag`, sobre clientes vivos con evaluación vigente viva. Las dos fuentes son disjuntas: la suma no dobla-cuenta                          |
+| **Resolución de casos** | ✅ cerrada          | `closed_at - opened_at` sólo sobre casos con `closed_at`, que son los de status `CLOSED` **y `REPORTED_UIF`** (los dos son terminales). Se reporta cuántos quedan fuera                             |
+| **Fuera de SLA**        | ✅ cerrada          | Dos poblaciones, las dos necesarias: sin revisar con `AS_OF - triggered_at > sla`, más revisadas con `first_reviewed_at - triggered_at > sla`. El plazo es `tenant_config.review_sla_hours`         |
+| **Cliente onboardeado** | ⚠️ con supuesto    | `APPROVED` con `onboarded_at` en el período. Los 307.444 aprobados sin fecha quedan fuera y **hay que declararlo con el número**                                                                    |
+| **Hallazgo real**       | 🔓 abierta          | `CLOSED_TRUE_POSITIVE` seguro. Las `ESCALATED` dependen de `tenant_config.escalated_counts_as_finding`, que existe y varía 20/20. La diferencia es **+50 %**                                        |
+| **PEP**                 | 🔓 abierta          | Descartada la lectura floja (`is_pep` sin mirar `result`: mete los descartados). Quedan dos a 67 % de distancia: `CONFIRMED_HIT` a secas o `CONFIRMED_HIT AND is_pep`                               |
+
+
+Las dos abiertas lo están por la misma razón: **las dos tienen una perilla en
+`tenant_config` o una ambigüedad real en la data, y son los mejores candidatos del
+dataset para ejercer los estados `RESPONDIDA_CON_SUPUESTO` y `NECESITO_QUE_ACLARES`.**
+Cerrarlas a dedo ahora sería tirar los dos casos de prueba más valiosos que hay.
+Se deciden con el eval (D-10).
+
+### Preguntas incontestables que la exploración ya identificó
+
+Insumo directo del set de evaluación de H4:
+
+- Cualquier recorrido alerta→caso o caso→alerta (trampa 10).
+- Sanciones o listas que no sean `PEP_AR`: existen 15 `watchlists` y **una sola
+  aparece en la data**, con exactamente un match por screening.
+- A qué valor se overrideó el riesgo de un cliente (`client_risk_overrides`).
+- Cualquier total en una sola moneda (D-08).
+- Casos anteriores a agosto de 2025 o screenings anteriores a enero de 2025: cada
+  tabla arranca en una fecha distinta, y la respuesta honesta no es "0" a secas.
+- Unir un screening con su corrida (`screening_runs` no tiene cómo: no hay `run_id`).
 
 
 ---

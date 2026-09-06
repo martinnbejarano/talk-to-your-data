@@ -170,22 +170,31 @@ def main() -> int:
         # -- 5. Fixture de tests --------------------------------------------
         titulo("5. Tenants fixture para los tests de aislamiento")
         print("  Criterio (`Q_FIXTURE`, en tests/criterio_fixture.py; el porqué está en")
-        print("  NOTES/00-restore-y-humo.md): activos, con filas vivas en")
-        print("  todas las tablas del núcleo, uno con umbral versionado y otro que")
-        print("  contrasta con él en kind, umbral vigente y mes fiscal.")
+        print("  NOTES/00-restore-y-humo.md y NOTES/01-exploracion.md): activos, con")
+        print("  filas vivas en todas las tablas del núcleo; A con umbral versionado y")
+        print("  el SLA más corto de la base, B con diez veces menos clientes y")
+        print("  distinto en los seis parámetros de negocio.")
         print()
         fixture = conn.execute(Q_FIXTURE, {"as_of": AS_OF}).fetchall()
-        for rol, tid, slug, kind, versiones, umbral, mes in fixture:
+        for (
+            rol, tid, slug, kind, clientes, versiones, umbral, mes, sla, pep, esc
+        ) in fixture:
             print(
                 f"    tenant {rol}: id={tid:<3} slug={slug:<16} kind={kind:<8} "
-                f"umbral={umbral} ({versiones} versión/es) mes_fiscal={mes}"
+                f"clientes={clientes:>7} umbral={umbral} ({versiones} versión/es) "
+                f"sla={sla}h mes_fiscal={mes} pep_alto={pep} escalada={esc}"
             )
         rep.check(len(fixture) == 2, "el criterio devuelve exactamente dos tenants")
         if len(fixture) == 2:
             a, b = fixture
             rep.check(a[1] != b[1], "los dos tenants del fixture son distintos")
-            rep.check(a[4] > 1, "el tenant A tiene el umbral de riesgo versionado")
-            rep.check(a[5] != b[5], "A y B tienen umbrales de riesgo vigentes distintos")
+            rep.check(a[5] > 1, "el tenant A tiene el umbral de riesgo versionado")
+            rep.check(a[6] != b[6], "A y B tienen umbrales de riesgo vigentes distintos")
+            # Las alertas "revisadas tarde" sólo existen en los tenants de SLA
+            # más corto: sin esta condición esa mitad de "fuera de SLA" es cero
+            # en los dos y una golden query que la omita pasa igual.
+            rep.check(a[8] < b[8], "A tiene el SLA de revisión más corto que B")
+            rep.check(b[4] * 10 <= a[4], "B tiene al menos diez veces menos clientes que A")
 
     # -- Cierre -------------------------------------------------------------
     titulo("Resultado")
