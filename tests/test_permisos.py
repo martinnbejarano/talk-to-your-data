@@ -101,7 +101,9 @@ def test_la_costura_deniega_toda_escritura(tabla, escritura, tenant_a):
     ESCRITURAS,
     ids=[f"{tabla}-{escritura.split()[0].lower()}" for tabla, escritura in ESCRITURAS],
 )
-def test_una_escritura_real_muere_por_permisos_y_no_por_la_transaccion(tabla, escritura):
+def test_una_escritura_real_muere_por_permisos_y_no_por_la_transaccion(
+    tabla, escritura, bootstrap_aplicado
+):
     """La denegación que la costura tapa, observada de verdad.
 
     La transacción de sólo lectura es una decisión de `agent_connection`, no un
@@ -129,7 +131,9 @@ def test_una_escritura_real_muere_por_permisos_y_no_por_la_transaccion(tabla, es
     )
 
 
-def test_la_superficie_de_permisos_es_usage_sobre_el_esquema_y_select_sobre_las_tablas():
+def test_la_superficie_de_permisos_es_usage_sobre_el_esquema_y_select_sobre_las_tablas(
+    bootstrap_aplicado,
+):
     """El `GRANT` de más que la costura no puede ver.
 
     `has_*_privilege` contempla también lo que llega por `PUBLIC` o por
@@ -156,7 +160,7 @@ def test_la_superficie_de_permisos_es_usage_sobre_el_esquema_y_select_sobre_las_
     )
 
 
-def test_agent_ro_no_tiene_ningun_privilegio_sobre_las_secuencias():
+def test_agent_ro_no_tiene_ningun_privilegio_sobre_las_secuencias(bootstrap_aplicado):
     """Nada sobre secuencias: no las necesita, porque no escribe."""
     with conectar_como_admin() as adm:
         cuantas_secuencias = adm.execute(
@@ -169,7 +173,7 @@ def test_agent_ro_no_tiene_ningun_privilegio_sobre_las_secuencias():
     assert privilegios == [], f"agent_ro tiene privilegios sobre secuencias: {privilegios}"
 
 
-def test_agent_ro_no_es_dueno_de_ninguna_relacion():
+def test_agent_ro_no_es_dueno_de_ninguna_relacion(bootstrap_aplicado):
     """La propiedad silenciosa de la que depende todo el blindaje.
 
     El dueño de una tabla se saltea las policies salvo que tenga `FORCE ROW

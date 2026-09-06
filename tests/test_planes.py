@@ -18,22 +18,10 @@ from __future__ import annotations
 import pytest
 
 from core.db import agent_connection
-from conftest import conectar_como_admin
 
-# El corte en 100k filas separa las tablas donde un recorrido completo se come el
-# presupuesto de 15s de aquellas donde da lo mismo.
-Q_TABLAS_GRANDES = """
-SELECT c.relname
-FROM pg_class c
-JOIN pg_namespace n ON n.oid = c.relnamespace
-WHERE n.nspname = 'public'
-  AND c.relkind = 'r'
-  AND c.reltuples >= 100000
-ORDER BY c.relname;
-"""
-
-with conectar_como_admin() as _adm:
-    TABLAS_GRANDES = {tabla for (tabla,) in _adm.execute(Q_TABLAS_GRANDES)}
+# Cuáles son las tablas grandes (`reltuples >= 100k`, el corte de D-06) lo
+# resuelve la fixture de sesión `tablas_grandes`, en `tests/conftest.py`. Acá no
+# se conecta al importar: colectar la suite no tiene que exigir Postgres.
 
 # Tres preguntas típicas de un oficial de compliance. Entre las tres tocan cinco
 # de las nueve tablas grandes.
@@ -77,14 +65,14 @@ def nodos_del_plan(conn, consulta) -> list[dict]:
 
 @pytest.mark.parametrize("pregunta", list(CONSULTAS_TIPICAS))
 def test_con_rls_activo_ninguna_consulta_tipica_recorre_entera_una_tabla_grande(
-    pregunta, tenant_a
+    pregunta, tenant_a, tablas_grandes
 ):
     """El test que puede tumbar el hito, y hoy no lo tumba.
 
     Falla si la policy deja de ser sargable, o si un cambio de esquema rompe la
     composición con los índices que tienen `tenant_id` como primera columna.
     """
-    assert "transactions" in TABLAS_GRANDES, "el catálogo no reconoció la tabla grande"
+    assert "transactions" in tablas_grandes, "el catálogo no reconoció la tabla grande"
 
     with agent_connection(tenant_a) as conn:
         nodos = nodos_del_plan(conn, CONSULTAS_TIPICAS[pregunta])
@@ -93,7 +81,7 @@ def test_con_rls_activo_ninguna_consulta_tipica_recorre_entera_una_tabla_grande(
         nodo["Relation Name"]
         for nodo in nodos
         if "Seq Scan" in nodo["Node Type"]
-        and nodo.get("Relation Name") in TABLAS_GRANDES
+        and nodo.get("Relation Name") in tablas_grandes
     ]
     assert recorridas_enteras == [], (
         f"«{pregunta}»: con RLS activo el plan recorre entera(s) "
