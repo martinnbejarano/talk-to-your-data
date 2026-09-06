@@ -1,0 +1,50 @@
+# Las dependencias del proyecto, y ninguna más.
+#
+# Nace en H3 y no antes porque hasta acá lo que faltaba era una sola cosa
+# instalada a mano —`pyyaml`, que H2 dejó anotada como pendiente de H6— y el
+# costo de no escribirla era chico. Este hito suma el cliente del proveedor del
+# modelo: con dos, el proyecto ya no arranca recién clonado, así que las cinco
+# se escriben acá y el pendiente de H2 se cierra en H3 en vez de en H6.
+#
+#     python3 -m venv .venv
+#     .venv/bin/pip install -r requirements.txt
+#
+# Se pinnea la versión exacta: el hito mide comportamiento contra la base y
+# contra la API, y una nota de `NOTES/` que dijera "medido con psycopg 3.3" sin
+# decir cuál sería una medición que no se puede repetir.
+
+# La única costura contra Postgres (`core/db`). El extra `binary` trae la libpq
+# compilada: sin él hace falta un toolchain de C y un `pg_config` en el PATH.
+psycopg[binary]==3.3.5
+
+# El `.env` que `core/config.py` carga una sola vez, al importar.
+python-dotenv==1.2.3
+
+# Las nueve skills de `core/semantics/` y el YAML del eval son datos, no código.
+PyYAML==6.0.3
+
+# El cliente del proveedor del modelo. El **nombre** del modelo no vive acá ni
+# en el código: sale de `OPENAI_MODEL`, que está en `.env.example` y se lee con
+# `core.config.modelo()`, que es lo que permite cambiarlo sin tocar una línea.
+openai==3.8.0
+
+# La API: tres endpoints delgados sobre `responder()`. FastAPI y no otra cosa
+# porque el payload de `/ask` se valida con el mismo pydantic que ya entra con
+# el cliente del modelo, y porque el schema de OpenAPI sale sin escribirlo.
+fastapi==0.141.1
+
+# El servidor que la corre:
+#
+#     .venv/bin/uvicorn api.main:app --reload --port 8000
+uvicorn==0.52.4
+
+# La suite. No es una dependencia de producción, pero mientras no haya un
+# `requirements-dev.txt` que justifique el archivo de más, va acá: el proyecto
+# se clona para trabajarlo, no para desplegarlo.
+pytest==9.1.1
+
+# El cliente HTTP sobre el que está hecho `fastapi.testclient`, que es por donde
+# `tests/test_api.py` cruza la API. Hoy llega igual como dependencia de `openai`,
+# y por eso se escribe: una dependencia que el proyecto usa de verdad y que está
+# sólo porque otra la arrastra es la que se rompe sin que nadie entienda por qué.
+httpx2==2.12.0
