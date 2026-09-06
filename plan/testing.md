@@ -41,15 +41,30 @@ evals binarios que esconden la inconsistencia entre corridas.
 ## Cómo se corre la suite
 
 ```
-.venv/bin/pytest -m "not lento"   # ciclo rápido, ~2 s: es el de cada cambio
-.venv/bin/pytest                  # completa, ~17 s: antes de cerrar un ticket
+.venv/bin/pytest -m "not lento and not caro"   # ciclo rápido, ~8 s: el de cada cambio
+.venv/bin/pytest                               # completa: antes de cerrar un ticket
 ```
 
-El marker `lento` está declarado en `pytest.ini` y hoy lo lleva un solo test: el que
-espera los 15 segundos del `statement_timeout` para confirmar que muerde. Un test lento
-no es un test de segunda —ése demuestra un límite de recursos real— pero tiene que poder
-excluirse **sin** excluir los de aislamiento, que son los que tienen que sonar en cada
-cambio. Marcar por lentitud y no por carpeta es lo que lo permite.
+La completa tarda **~100 s y gasta ~25 ¢ de API real**, así que no es la que se corre a
+cada rato: se corre una vez, antes de cerrar un ticket que tocó código.
+
+Los dos markers están declarados en `pytest.ini`, y se excluyen por razones distintas:
+
+| Marker | Qué lo lleva | Por qué se excluye |
+|---|---|---|
+| `lento` | Los que esperan los 15 s del `statement_timeout` para confirmar que muerde | Para no esperar |
+| `caro` | Los que entran por `responder(...)`: los únicos del proyecto que le preguntan a un LLM | Para no gastar tokens de la API real |
+
+Un test `lento` no es un test de segunda —ése demuestra un límite de recursos real— pero
+tiene que poder excluirse **sin** excluir los de aislamiento, que son los que tienen que
+sonar en cada cambio. Marcar por lentitud y por costo, y no por carpeta, es lo que lo
+permite.
+
+**Si los `caro` fallan con un 429, mirá el saldo antes que el código.** Sin crédito en la
+cuenta, la `RateLimitError` sube desde `chat.completions.create` sin que nadie la
+envuelva, así que el test rompe con un traceback del cliente de OpenAI y no con una
+aserción. Los otros 188 no dependen de la API y siguen dando verde: si sólo caen los cinco
+`caro`, el diagnóstico es la cuenta.
 
 ## Heurística para decidir qué testear
 
@@ -66,13 +81,22 @@ Partición por clase de equivalencia, con el paso 4 explícito en cada fila:
 
 | Clase | Tipo | Qué verifica | Qué cambio lo haría fallar |
 |---|---|---|---|
-| Aislamiento por tenant | Integración | Sin `app.tenant_id` → 0 filas; con → un solo tenant; escrituras denegadas | Sacar la policy de RLS o darle `BYPASSRLS` al rol |
+| Aislamiento por institución | Integración | Sin `app.tenant_id` → 0 filas; con → una sola institución; escrituras denegadas | Sacar la policy de RLS o darle `BYPASSRLS` al rol |
 | Gate de `EXPLAIN` | Localizado | Rechaza **recorrer entera una tabla grande** (`reltuples >= 100k`, el corte de D-06), multi-statement y no-`SELECT`; acepta index scan, y también el seq scan sobre una tabla chica —para las cinco sin índice por `tenant_id` es el único plan posible y cuesta 55-170 ms | Aflojar el umbral de costo o sacar el chequeo de plan |
-| Trazabilidad de números | Unitario | Toda cifra de la respuesta está en el trace | Permitir que el modelo calcule |
-| Resolución de períodos | Unitario | "este año" → `[2026-01-01, 2026-06-01]`; "último trimestre" → `[2026-01-01, 2026-03-31]` | Usar `now()`, o dejar que `fiscal_year_start_month` corra el período |
-| Golden queries | Integración | Cada una corre en los 2 tenants, bajo timeout, usando índice | Cambiar una definición sin actualizar su golden |
+| Trazabilidad de números | Unitario | Toda cifra de la respuesta está en la traza | Permitir que el modelo calcule |
+| Resolución de períodos | Unitario | "este año" → `[2026-01-01, 2026-06-01)`; "último trimestre" → `[2026-01-01, 2026-04-01)` | Usar `now()`, o dejar que `fiscal_year_start_month` corra el período |
+| Golden queries | Integración | Cada una corre en las 2 instituciones, bajo timeout, usando índice | Cambiar una definición sin actualizar su golden |
 | Normalización de documento | Unitario | `20-12345678-9` y `20123456789` colapsan al mismo grupo | Sacar la normalización |
-| Contrato de la API | Integración | `/ask` con tenant A y con tenant B dan resultados distintos y ninguno filtra al otro | Tomar el tenant del texto de la pregunta |
+| Contrato de la API | Integración | `/ask` con la institución A y con la B devuelve resultados distintos, y ninguna ve las filas de la otra | Tomar la institución del texto de la pregunta |
+
+**Los períodos se escriben semiabiertos, `[desde, hasta)`.** Las nueve goldens filtran
+con `>= %(desde)s AND < %(hasta)s` y así se generó `evals/valores_esperados.yaml`, donde
+el último trimestre termina en `2026-04-01`. La notación cerrada que usaba antes este
+documento nombraba **la misma ventana** en el caso del trimestre —`03-31]` es `04-01)`—
+pero invita a escribir un `<=` que en un campo con hora deja afuera casi todo un día. En
+"este año" la diferencia no era de notación sino de un día: la fecha de corte es el
+extremo derecho y **no entra**, como no entra en las goldens. Un solo par de fechas, una
+sola notación, la del código.
 
 **Lo que NO testeamos con tests:** el prompt, el wording de la respuesta, el orden en que
 el agente llama las tools. Eso es trabajo del eval. Un test sobre esas cosas es un change
@@ -88,7 +112,7 @@ pregunta, **el set tiene un agujero**.
 |---|---|
 | Sacar `deleted_at IS NULL` de `riesgo_alto` | El conteo de riesgo alto |
 | Incluir `CLOSED_FALSE_POSITIVE` en `hallazgo_real` | Los hallazgos del trimestre |
-| Tomar el `effective_from_date` más viejo en vez del vigente | Riesgo alto en el tenant con umbral versionado |
+| Tomar el `effective_from_date` más viejo en vez del vigente | Riesgo alto en la institución con umbral versionado |
 | Sumar montos entre monedas | La pregunta ambigua de monto total |
 | Usar `now()` en lugar de `AS_OF` | Todas las preguntas con período |
 | Contar `POTENTIAL_HIT` como PEP | La pregunta de PEPs |

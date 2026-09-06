@@ -4,8 +4,8 @@
 
 Una aplicación web donde un oficial de compliance —no técnico— hace una pregunta en
 castellano sobre los datos de **su** institución y recibe una respuesta que puede
-auditar: el número, la definición de negocio que se aplicó, los filtros, el SQL
-ejecutado y una muestra de las filas.
+auditar: el número, la definición de negocio que se aplicó, lo que quedó afuera, el
+SQL ejecutado y una muestra de las filas.
 
 Cuando la pregunta es ambigua, repregunta. Cuando no se puede responder con la data
 disponible, lo dice y explica qué falta. Nunca inventa.
@@ -14,15 +14,16 @@ disponible, lo dice y explica qué falta. Nunca inventa.
 
 ### Adentro
 
-- Chat multi-turno con selector de tenant fijo y visible.
+- Chat multi-turno con selector de institución fijo y visible.
 - Agente con tools de exploración de esquema y ejecución de SQL, con barandas
 estructurales (rol read-only, RLS por tenant, gate de `EXPLAIN`, timeout).
 - Skills semánticas para los nueve conceptos ambiguos del dominio, con golden queries
 verificadas a mano.
 - Cuatro estados de respuesta (respondida / con supuesto / necesito que aclares /
-no se puede responder).
+no se puede responder). El nombre del estado es del contrato y no se muestra en
+pantalla: lo que se muestra es su consecuencia (`CONTEXT.md`).
 - Panel de respuesta en dos lecturas (D-07): para el oficial de compliance, derivación
-en cascada, criterios con el origen del parámetro, exclusiones explícitas y filas
+en cascada, definiciones con el origen del parámetro, exclusiones explícitas y filas
 reales con export; para IT, el SQL y el plan plegados en `▸ Detalle técnico`.
 - Set de evaluación propio con runner y reporte.
 - `README.md`, `DECISIONS.md`, `CONTEXT.md` (el glosario del dominio), `NOTES/` (log de
@@ -33,7 +34,7 @@ proceso), `AGENT_LOG.md`, `PRODUCT.md`.
 
 | Fuera de alcance                 | Por qué                                                                                                                                                   |
 | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Autenticación y usuarios reales  | El selector de tenant simula el scope del login; construir auth no aporta señal                                                                           |
+| Autenticación y usuarios reales  | El selector de institución simula el scope del login; construir auth no aporta señal                                                                           |
 | Escrituras a la base             | El rol es read-only por diseño. Ramp: *"las tools de escritura pueden ser particularmente poco confiables"*                                               |
 | Conversión de monedas            | No hay data de FX; inventar una tasa sería el peor error posible (D-08)                                                                                   |
 | Dedup por email o nombre difuso  | Decisión D-09, con la limitación declarada en cada respuesta                                                                                              |
@@ -57,9 +58,10 @@ agent/
   tools.py               list_tables · describe_table · sample_values ·
                          get_definition · run_sql
   loop.py                orquestación y salida estructurada
-api/                     FastAPI: POST /ask (streaming de pasos), GET /tenants,
-                         GET /audit/{trace_id}
-web/                     React + Vite: selector de tenant, chat, panel de derivación
+api/                     FastAPI: POST /ask (streaming de pasos), GET /instituciones,
+                         GET /auditoria/{traza_id}
+web/                     React + Vite: selector de institución, chat, panel de
+                         derivación
 evals/
   questions.yaml         preguntas golden, una por clase de equivalencia
   run.py                 runner
@@ -70,16 +72,16 @@ NOTES/                   log de proceso: exploración, confusiones, supuestos de
 
 ### Flujo de una pregunta
 
-1. El front manda `{tenant_id, pregunta, historial}`.
+1. El front manda `{institucion_id, pregunta, historial}`.
 2. El backend abre una conexión con el rol read-only y hace `SET app.tenant_id`.
- **A partir de acá las filas de otros tenants no existen.**
+ **A partir de acá las filas de las otras instituciones no existen.**
 3. El agente recibe el esquema (con los índices disponibles) y las skills relevantes.
 4. Explora si le hace falta (`describe_table`, `sample_values`).
 5. Propone SQL → `EXPLAIN` → si el plan es malo, vuelve con el error y reintenta.
 6. Ejecuta, y arma la respuesta **sólo con valores presentes en los resultados**.
 7. Devuelve estado + respuesta + **derivación** + definiciones usadas + exclusiones +
  filas + supuestos, y las queries ejecutadas para el detalle técnico.
-8. El front muestra la respuesta y el trace completo en el panel.
+8. El front muestra la respuesta, y la traza completa queda disponible para IT.
 
 ## Hitos
 
@@ -112,9 +114,9 @@ excepción es H3, que se puede empezar en paralelo con H2 usando una sola skill.
 | Contestables: ¿da el número correcto?     | Comparación contra la respuesta esperada del set golden                             |
 | Ambiguas: ¿repregunta o declara supuesto? | El estado devuelto tiene que ser `NECESITO_QUE_ACLARES` o `RESPONDIDA_CON_SUPUESTO` |
 | Incontestables: ¿reconoce que no puede?   | El estado tiene que ser `NO_SE_PUEDE_RESPONDER`                                     |
-| Nunca cruza tenants                       | Test de integración: consultas sin filtro devuelven un solo `tenant_id`             |
+| Nunca cruza instituciones                 | Test de integración: consultas sin filtro devuelven un solo `tenant_id`             |
 | Performance                               | Ninguna query del set supera el `statement_timeout`                                 |
-| Todo número es trazable                   | Test: cada cifra de la respuesta aparece en algún resultado del trace               |
+| Todo número es trazable                   | Test: cada cifra de la respuesta aparece en algún resultado de la traza             |
 
 
 ## Referencias
