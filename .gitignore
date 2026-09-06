@@ -10,3 +10,7 @@ dist/
 .DS_Store
 evals/reports/*.json
 .pytest_cache/
+
+# Las capturas con que se verifica la pantalla a mano: son evidencia de una
+# corrida, no fuente. Lo que vale se anota en `NOTES/`.
+.capturas/

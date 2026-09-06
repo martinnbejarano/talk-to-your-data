@@ -367,7 +367,7 @@ decisión que todavía no está tomada, y el eval tiene que poder medir las dos.
 | Decidir `pep_confirmado` (vigente 660 contra histórico 2.161) | H4 · eval |
 | Las preguntas incontestables ya identificadas en H1, más dos que confirmó H2: sanciones fuera de `PEP_AR`, y cruzar hallazgos con casos reportados | H4 · set de evals |
 | `validar_semantica.py` es el candidato natural a `tests/test_semantica.py`: ya afirma lo observable y no toca el SQL generado por el agente | H3 · tests |
-| El proyecto no tiene manifiesto de dependencias (`pyyaml` se instaló a mano en el venv) | H6 · entrega |
+| ~~El proyecto no tiene manifiesto de dependencias (`pyyaml` se instaló a mano en el venv)~~ | ~~H6 · entrega~~ · **cerrado en H3**: `requirements.txt` |
 
 ---
 

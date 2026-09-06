@@ -201,6 +201,12 @@ quedan en pie:
 - "este año" = `[2026-01-01, 2026-06-01]`
 - "último trimestre" = `[2026-01-01, 2026-03-31]`
 
+> **Nota de H3.** Estas dos líneas quedan como se escribieron —esto es el log de
+> H0, no la definición vigente—, pero la notación cerrada de acá **no es la que
+> usa el código**. Los períodos se escriben semiabiertos, `[desde, hasta)`, y en
+> "este año" la diferencia no es de notación sino de un día. La definición que
+> manda está en `plan/testing.md` y en `core/periodos.py`.
+
 La ventana total de datos es de **2 años y 5 meses y medio**, arrancando el
 2023-12-14 — el mismo día para los 40 tenants, así que la base es sintética y
 generada de una sola pasada. No hay tenants "nuevos" con historia corta, aunque
