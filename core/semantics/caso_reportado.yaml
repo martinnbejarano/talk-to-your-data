@@ -1,0 +1,77 @@
+concepto: caso_reportado
+nombre_humano: "Caso reportado a la UIF"
+
+definicion: |
+  Un caso reportado es una investigación que terminó en un reporte a la UIF. La
+  fecha que lo ubica en un período es la del reporte, no la de apertura ni la de
+  cierre del caso.
+
+depende_de_config: []
+periodo_por_defecto: ultimo_trimestre
+parametros: ["periodo (opcional)"]
+
+trampas:
+  - "REPORTED_UIF es un estado TERMINAL, no uno abierto: esos casos tienen
+     closed_at y outcome poblados igual que los CLOSED."
+  - "El período se mide sobre la fecha del reporte (sar_reports.reported_date),
+     que es lo que quiere decir reportamos. Usar opened_at contesta otra cosa."
+  - "La relación entre un caso REPORTED_UIF y su reporte es 1 a 1 exacta, sin
+     huérfanos. Es el único vínculo no documentado de la base que funciona."
+  - "sar_reports no tiene deleted_at: no hay soft-delete que excluir ahí."
+  - "sar_reports arranca en 2025-11-13. Preguntar por 2024 no da cero, da que no
+     hay reportes anteriores a noviembre de 2025."
+  - "Esto NO es hallazgo_real, que cuenta alertas y da un número quince veces
+     más grande. Las dos poblaciones no se pueden cruzar."
+
+derivacion:
+  - paso: total
+    texto: "Casos de la institución"
+  - paso: activos
+    texto: "no borrados"
+  - paso: reportados
+    texto: "reportados a la UIF"
+  - paso: reportados_en_periodo
+    texto: "= reportados en el período"
+
+resultado: reportados_en_periodo
+
+exclusiones:
+  - "casos cerrados sin reporte"
+  - "casos abiertos, en investigación o a la espera de información"
+
+no_aplica_cuando: |
+  La pregunta es por las alertas que resultaron ciertas (eso es hallazgo_real) o
+  por qué alertas originaron un caso, que no se puede responder.
+
+golden_sql: |
+  WITH clasificados AS (
+      SELECT
+          c.deleted_at IS NULL                              AS vivo,
+          c.status = 'REPORTED_UIF'                         AS reportado,
+          coalesce(s.reported_date >= %(desde)s::date
+               AND s.reported_date <  %(hasta)s::date, false) AS en_periodo
+      FROM cases c
+      LEFT JOIN sar_reports s
+             ON s.tenant_id = %(tenant)s AND s.case_id = c.id
+      WHERE c.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                    AS total,
+      count(*) FILTER (WHERE vivo)                                AS activos,
+      count(*) FILTER (WHERE vivo AND reportado)                  AS reportados,
+      count(*) FILTER (WHERE vivo AND reportado AND en_periodo)   AS reportados_en_periodo
+  FROM clasificados;
+
+verificacion_sql: |
+  -- Segundo camino: se cuenta desde el reporte hacia el caso, con un EXISTS,
+  -- en vez de desde el caso hacia el reporte con un LEFT JOIN.
+  SELECT count(*)
+  FROM sar_reports s
+  WHERE s.tenant_id = %(tenant)s
+    AND s.reported_date >= %(desde)s::date
+    AND s.reported_date <  %(hasta)s::date
+    AND EXISTS (
+        SELECT 1 FROM cases c
+        WHERE c.tenant_id = %(tenant)s AND c.id = s.case_id
+          AND c.deleted_at IS NULL AND c.status = 'REPORTED_UIF'
+    );

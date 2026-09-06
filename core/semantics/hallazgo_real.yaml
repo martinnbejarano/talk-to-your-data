@@ -1,0 +1,104 @@
+concepto: hallazgo_real
+nombre_humano: "Hallazgo real (alerta que resultó cierta)"
+
+definicion: |
+  Un hallazgo real es una alerta cerrada como verdadero positivo. Donde la
+  institución lo configuró así, las alertas escaladas también cuentan. No
+  incluye los casos reportados a la UIF, que son otra población.
+
+depende_de_config: [escalated_counts_as_finding]
+periodo_por_defecto: ultimo_trimestre
+parametros: ["periodo (opcional)"]
+
+trampas:
+  - "Los falsos positivos cerrados son el 34,8 %: contar todas las alertas infla
+     2,3 veces."
+  - "Que las escaladas cuenten es una perilla de la institución (+50 %), y varía
+     20/20 entre las cuarenta."
+  - "Esto cuenta ALERTAS. Los casos reportados a la UIF son 15 veces menos y son
+     otra pregunta (caso_reportado). Las dos poblaciones NO se pueden cruzar: el
+     vínculo alerta-caso no existe en la base."
+  - "Abiertas y en revisión no son hallazgos: todavía no se sabe."
+  - "alerts arranca en 2024-05-10 y no tiene ni una fila borrada."
+
+derivacion:
+  - paso: total
+    texto: "Alertas de la institución"
+  - paso: del_periodo
+    texto: "disparadas en el período"
+  - paso: confirmadas
+    texto: "cerradas como verdadero positivo"
+  - paso: escaladas
+    texto: "+ escaladas (tu institución las cuenta)"
+  - paso: hallazgos
+    texto: "= hallazgos reales"
+
+resultado: hallazgos
+
+exclusiones:
+  - "alertas cerradas como falso positivo"
+  - "alertas abiertas o en revisión: todavía no se sabe si son hallazgos"
+  - "casos reportados a la UIF: son otra población y no se pueden cruzar con ésta"
+
+supuestos:
+  - "Cuenta alertas cerradas como verdadero positivo, no casos."
+  - "Las alertas escaladas entran o no según la configuración de tu institución."
+  - "No incluye los casos reportados a la UIF, y los dos números no se pueden
+    reconciliar: la base no tiene el vínculo entre una alerta y un caso."
+
+no_aplica_cuando: |
+  La pregunta es por los casos reportados a la UIF, por los SAR presentados, o
+  por cuántas alertas terminaron en un caso. Lo primero es caso_reportado; lo
+  último no se puede responder.
+
+golden_sql: |
+  WITH config AS (
+      SELECT DISTINCT ON (key) key, value #>> '{}' AS valor
+      FROM tenant_config
+      WHERE tenant_id = %(tenant)s
+        AND effective_from_date <= %(as_of)s::date
+      ORDER BY key, effective_from_date DESC
+  ),
+  perilla AS (
+      SELECT valor::boolean AS cuenta
+      FROM config WHERE key = 'escalated_counts_as_finding'
+  ),
+  clasificadas AS (
+      SELECT
+          a.deleted_at IS NULL                                       AS viva,
+          coalesce(a.triggered_at >= %(desde)s::date
+               AND a.triggered_at <  %(hasta)s::date, false)         AS en_periodo,
+          a.status = 'CLOSED_TRUE_POSITIVE'                          AS confirmada,
+          coalesce(p.cuenta AND a.status = 'ESCALATED', false)       AS escalada_cuenta
+      FROM alerts a
+      CROSS JOIN perilla p
+      WHERE a.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                        AS total,
+      count(*) FILTER (WHERE viva AND en_periodo)                     AS del_periodo,
+      count(*) FILTER (WHERE viva AND en_periodo AND confirmada)      AS confirmadas,
+      count(*) FILTER (WHERE viva AND en_periodo AND escalada_cuenta) AS escaladas,
+      count(*) FILTER (WHERE viva AND en_periodo
+                         AND (confirmada OR escalada_cuenta))         AS hallazgos
+  FROM clasificadas;
+
+verificacion_sql: |
+  -- Segundo camino: la lista de estados que cuentan se arma antes con un
+  -- array, y el filtro es un IN en el WHERE en vez de un FILTER por estado.
+  SELECT count(*)
+  FROM alerts a
+  WHERE a.tenant_id = %(tenant)s
+    AND a.deleted_at IS NULL
+    AND a.triggered_at >= %(desde)s::date
+    AND a.triggered_at <  %(hasta)s::date
+    AND a.status = ANY (
+        CASE WHEN (
+            SELECT (value #>> '{}')::boolean FROM tenant_config
+            WHERE tenant_id = %(tenant)s AND key = 'escalated_counts_as_finding'
+              AND effective_from_date <= %(as_of)s::date
+            ORDER BY effective_from_date DESC LIMIT 1
+        ) THEN ARRAY['CLOSED_TRUE_POSITIVE', 'ESCALATED']
+             ELSE ARRAY['CLOSED_TRUE_POSITIVE']
+        END
+    );

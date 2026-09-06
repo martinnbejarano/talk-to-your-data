@@ -1,0 +1,80 @@
+concepto: cliente_onboardeado
+nombre_humano: "Cliente onboardeado (alta del período)"
+
+definicion: |
+  Un alta es un cliente aprobado cuya fecha de alta cae dentro del período. Los
+  aprobados sin fecha de alta no se pueden ubicar en ningún período y quedan
+  fuera: son el 41,9 % de los aprobados y hay que decirlo con el número.
+
+depende_de_config: []
+periodo_por_defecto: este_año
+parametros: [periodo]
+
+trampas:
+  - "Alta y cliente aprobado son dos cosas distintas. La primera es un evento
+     fechado, la segunda un estado. Contar aprobados a secas no responde una
+     pregunta con período; contar altas deja afuera a cuatro de cada diez."
+  - "El período es de calendario y se interpreta contra el AS_OF, nunca contra
+     now(). El fiscal_year_start_month de la institución no lo redefine."
+  - "PENDING, REJECTED y MANUAL_REVIEW tienen onboarded_at en NULL siempre: ahí
+     la falta de fecha es correcta y no es el agujero del 41,9 %."
+  - "clients.onboarded_at arranca en 2024-05-11. Preguntar por 2023 no da cero,
+     da que no hay datos de altas anteriores a mayo de 2024."
+
+derivacion:
+  - paso: total
+    texto: "Clientes de la institución"
+  - paso: activos
+    texto: "activos (no dados de baja)"
+  - paso: aprobados
+    texto: "aprobados (KYC completo)"
+  - paso: con_fecha_de_alta
+    texto: "con fecha de alta registrada"
+  - paso: altas_del_periodo
+    texto: "= dados de alta en el período"
+
+resultado: altas_del_periodo
+
+exclusiones:
+  - "clientes dados de baja"
+  - "clientes aprobados sin fecha de alta registrada: no se pueden ubicar en un período"
+  - "clientes pendientes, rechazados o en revisión manual"
+
+supuestos:
+  - "Se cuentan las altas con fecha dentro del período. Los aprobados sin fecha
+    de alta quedan fuera, y la respuesta dice cuántos son."
+
+no_aplica_cuando: |
+  La pregunta es por el padrón total de clientes y no por las altas de un
+  período ("¿cuántos clientes tenemos?"), que es otra pregunta y además
+  ambigua: hay que aclarar si se refiere a todos, a los aprobados o a los vivos.
+
+golden_sql: |
+  WITH clasificados AS (
+      SELECT
+          c.deleted_at IS NULL                          AS vivo,
+          c.onboarding_status = 'APPROVED'              AS aprobado,
+          c.onboarded_at IS NOT NULL                    AS con_fecha,
+          coalesce(c.onboarded_at >= %(desde)s::date
+               AND c.onboarded_at <  %(hasta)s::date, false) AS en_periodo
+      FROM clients c
+      WHERE c.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                          AS total,
+      count(*) FILTER (WHERE vivo)                                      AS activos,
+      count(*) FILTER (WHERE vivo AND aprobado)                         AS aprobados,
+      count(*) FILTER (WHERE vivo AND aprobado AND con_fecha)           AS con_fecha_de_alta,
+      count(*) FILTER (WHERE vivo AND aprobado AND en_periodo)          AS altas_del_periodo
+  FROM clasificados;
+
+verificacion_sql: |
+  -- Segundo camino: filtrando en el WHERE en vez de con FILTER, y acotando el
+  -- período con BETWEEN sobre el índice (tenant_id, onboarded_at).
+  SELECT count(*)
+  FROM clients c
+  WHERE c.tenant_id = %(tenant)s
+    AND c.deleted_at IS NULL
+    AND c.onboarding_status = 'APPROVED'
+    AND c.onboarded_at BETWEEN %(desde)s::date
+                           AND (%(hasta)s::date - interval '1 microsecond');

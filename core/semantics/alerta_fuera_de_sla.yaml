@@ -1,0 +1,110 @@
+concepto: alerta_fuera_de_sla
+nombre_humano: "Alerta fuera del SLA de revisión"
+
+definicion: |
+  Una alerta está fuera del SLA cuando pasó el plazo de primera revisión que
+  configuró su institución. Son dos poblaciones disjuntas y las dos cuentan: las
+  que siguen sin revisar y ya vencieron, y las que se revisaron tarde.
+
+depende_de_config: [review_sla_hours]
+periodo_por_defecto: ultimo_trimestre
+parametros: ["periodo (opcional)"]
+
+trampas:
+  - "Las revisadas tarde son la mitad que se olvida, y no es una mitad menor:
+     donde el plazo es de 24 h son MÁS que las que siguen sin revisar."
+  - "Esa mitad sólo existe donde el plazo es corto. El tiempo máximo hasta la
+     primera revisión en toda la base es de 71 horas, así que con un SLA de 48 o
+     72 h ninguna alerta llega tarde y la mitad da cero. Una consulta que la
+     omita pasa desapercibida en 27 de las 40 instituciones."
+  - "El plazo está en horas y varía por institución (24, 48 o 72)."
+  - "Las alertas sin revisar son exactamente las abiertas: first_reviewed_at IS
+     NULL equivale a status = OPEN, sin excepciones."
+  - "El vencimiento de las no revisadas se mide contra el AS_OF, no contra now()."
+  - "alerts no tiene ni una fila borrada: declarar que se excluyen las borradas
+     sería ruido que no excluye nada."
+
+derivacion:
+  - paso: total
+    texto: "Alertas de la institución"
+  - paso: activas
+    texto: "no borradas"
+  - paso: sin_revisar
+    texto: "sin revisar"
+  - paso: sin_revisar_vencidas
+    texto: "sin revisar y ya vencidas"
+  - paso: revisadas_tarde
+    texto: "+ revisadas fuera de plazo"
+  - paso: fuera_de_sla
+    texto: "= alertas fuera del SLA"
+
+resultado: fuera_de_sla
+
+exclusiones:
+  - "alertas revisadas dentro del plazo"
+  - "alertas sin revisar que todavía están en plazo"
+
+no_aplica_cuando: |
+  La pregunta es por el plazo de resolución de un caso o por el tiempo que tarda
+  una alerta en cerrarse. El único plazo configurado es el de PRIMERA REVISIÓN
+  de una alerta; no hay SLA de cierre ni de casos en la base.
+
+golden_sql: |
+  WITH config AS (
+      SELECT DISTINCT ON (key) key, value #>> '{}' AS valor
+      FROM tenant_config
+      WHERE tenant_id = %(tenant)s
+        AND effective_from_date <= %(as_of)s::date
+      ORDER BY key, effective_from_date DESC
+  ),
+  sla AS (
+      SELECT make_interval(hours => valor::int) AS plazo
+      FROM config WHERE key = 'review_sla_hours'
+  ),
+  clasificadas AS (
+      SELECT
+          a.deleted_at IS NULL                  AS viva,
+          a.first_reviewed_at IS NULL           AS sin_revisar,
+          coalesce(a.first_reviewed_at IS NULL
+               AND %(as_of)s::timestamptz - a.triggered_at > s.plazo, false)
+                                                AS vencida_sin_revisar,
+          coalesce(a.first_reviewed_at IS NOT NULL
+               AND a.first_reviewed_at - a.triggered_at > s.plazo, false)
+                                                AS revisada_tarde
+      FROM alerts a
+      CROSS JOIN sla s
+      WHERE a.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                    AS total,
+      count(*) FILTER (WHERE viva)                                AS activas,
+      count(*) FILTER (WHERE viva AND sin_revisar)                AS sin_revisar,
+      count(*) FILTER (WHERE viva AND vencida_sin_revisar)        AS sin_revisar_vencidas,
+      count(*) FILTER (WHERE viva AND revisada_tarde)             AS revisadas_tarde,
+      count(*) FILTER (WHERE viva AND (vencida_sin_revisar
+                                    OR revisada_tarde))           AS fuera_de_sla
+  FROM clasificadas;
+
+verificacion_sql: |
+  -- Segundo camino: las dos mitades como dos consultas separadas que se suman,
+  -- con el plazo resuelto en una subconsulta escalar y la aritmética hecha en
+  -- horas sueltas en vez de con un interval.
+  SELECT (
+      SELECT count(*) FROM alerts a
+      WHERE a.tenant_id = %(tenant)s AND a.deleted_at IS NULL
+        AND a.first_reviewed_at IS NULL
+        AND EXTRACT(epoch FROM %(as_of)s::timestamptz - a.triggered_at) / 3600 > (
+            SELECT (value #>> '{}')::int FROM tenant_config
+            WHERE tenant_id = %(tenant)s AND key = 'review_sla_hours'
+              AND effective_from_date <= %(as_of)s::date
+            ORDER BY effective_from_date DESC LIMIT 1)
+  ) + (
+      SELECT count(*) FROM alerts a
+      WHERE a.tenant_id = %(tenant)s AND a.deleted_at IS NULL
+        AND a.first_reviewed_at IS NOT NULL
+        AND EXTRACT(epoch FROM a.first_reviewed_at - a.triggered_at) / 3600 > (
+            SELECT (value #>> '{}')::int FROM tenant_config
+            WHERE tenant_id = %(tenant)s AND key = 'review_sla_hours'
+              AND effective_from_date <= %(as_of)s::date
+            ORDER BY effective_from_date DESC LIMIT 1)
+  );

@@ -1,0 +1,94 @@
+concepto: resolucion_de_casos
+nombre_humano: "Tiempo de resolución de casos"
+
+definicion: |
+  El tiempo de resolución es lo que tardó un caso cerrado desde que se abrió, y
+  se promedia sólo sobre los casos que efectivamente cerraron. Un caso abierto
+  no tiene tiempo de resolución: es N/A, ni cero ni "hasta hoy". La antigüedad
+  de los que siguen abiertos se reporta siempre, junto al promedio.
+
+depende_de_config: []
+periodo_por_defecto: ultimo_trimestre
+parametros: ["periodo (opcional)"]
+
+trampas:
+  - "Casos cerrados son DOS estados terminales: CLOSED y REPORTED_UIF. Excluir
+     el segundo pierde uno de cada cuatro, y los más graves."
+  - "El 40 % no está cerrado. Contarlos como hasta hoy da 9,6 veces más;
+     contarlos como cero, casi la mitad. Son N/A."
+  - "El promedio de los cerrados va solo y engaña: ningún caso tardó más de 5
+     días en cerrar y los abiertos llevan más de 90. No es una distribución
+     cortada, son dos poblaciones — un caso cierra rápido o no cierra. Por eso
+     la antigüedad de los abiertos es un escalón, no un dato de color."
+  - "La antigüedad se mide contra el AS_OF, nunca contra now()."
+  - "cases arranca en 2025-08-04, no tiene filas borradas, y outcome no agrega
+     nada que status no tenga."
+
+derivacion:
+  - paso: total
+    texto: "Casos de la institución"
+  - paso: del_periodo
+    texto: "abiertos en el período"
+  - paso: cerrados
+    texto: "que ya cerraron (cerrados y reportados a la UIF)"
+  - paso: abiertos
+    texto: "que siguen abiertos (sin tiempo de resolución)"
+
+metricas:
+  - nombre: dias_promedio_cerrados
+    texto: "tiempo promedio de los que cerraron"
+    unidad: "días"
+  - nombre: dias_antiguedad_abiertos
+    texto: "antigüedad promedio de los que siguen abiertos"
+    unidad: "días"
+
+resultado: dias_promedio_cerrados
+
+exclusiones:
+  - "casos que siguen abiertos: no tienen tiempo de resolución"
+
+supuestos:
+  - "El promedio es sobre los casos que cerraron. Los que siguen abiertos se
+    informan aparte, con su antigüedad, porque son más viejos que cualquier caso
+    que haya cerrado."
+
+no_aplica_cuando: |
+  La pregunta es por el plazo de revisión de una alerta (eso es
+  alerta_fuera_de_sla) o por un SLA de casos, que no existe en la base.
+
+golden_sql: |
+  WITH clasificados AS (
+      SELECT
+          c.deleted_at IS NULL                                     AS vivo,
+          coalesce(c.opened_at >= %(desde)s::date
+               AND c.opened_at <  %(hasta)s::date, false)          AS en_periodo,
+          c.closed_at IS NOT NULL                                  AS cerrado,
+          EXTRACT(epoch FROM c.closed_at - c.opened_at) / 86400    AS dias_cerrado,
+          EXTRACT(epoch FROM %(as_of)s::timestamptz - c.opened_at) / 86400
+                                                                   AS dias_abierto
+      FROM cases c
+      WHERE c.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                     AS total,
+      count(*) FILTER (WHERE vivo AND en_periodo)                  AS del_periodo,
+      count(*) FILTER (WHERE vivo AND en_periodo AND cerrado)      AS cerrados,
+      count(*) FILTER (WHERE vivo AND en_periodo AND NOT cerrado)  AS abiertos,
+      round(avg(dias_cerrado) FILTER
+            (WHERE vivo AND en_periodo AND cerrado)::numeric, 2)   AS dias_promedio_cerrados,
+      round(avg(dias_abierto) FILTER
+            (WHERE vivo AND en_periodo AND NOT cerrado)::numeric, 2)
+                                                                   AS dias_antiguedad_abiertos
+  FROM clasificados;
+
+verificacion_sql: |
+  -- Segundo camino: el promedio sobre una subconsulta ya filtrada por WHERE, y
+  -- los dos estados terminales nombrados explícitamente en vez de deducirlos de
+  -- closed_at IS NOT NULL. Que coincidan prueba las dos cosas a la vez.
+  SELECT round(avg(EXTRACT(epoch FROM closed_at - opened_at) / 86400)::numeric, 2)
+  FROM cases k
+  WHERE k.tenant_id = %(tenant)s
+    AND k.deleted_at IS NULL
+    AND k.status IN ('CLOSED', 'REPORTED_UIF')
+    AND k.opened_at >= %(desde)s::date
+    AND k.opened_at <  %(hasta)s::date;

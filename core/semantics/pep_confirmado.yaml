@@ -1,0 +1,110 @@
+concepto: pep_confirmado
+nombre_humano: "Cliente PEP (persona expuesta políticamente)"
+
+definicion: |
+  Un cliente es PEP si su screening contra listas dio un hit confirmado. Lo que
+  está abierto es CUÁL screening: el vigente o cualquiera de los históricos. Los
+  dos son defendibles, difieren por tres, y hay que preguntar cuál se quiere.
+
+depende_de_config: []
+periodo_por_defecto: este_año
+parametros: []
+
+trampas:
+  - "screenings está historizada y NO tiene is_current: 4 o 5 corridas por
+     cliente y nada marca cuál vale hoy. Ése es el eje que más pesa (x3,3)."
+  - "Siete de cada diez que alguna vez dieron hit confirmado figuran como NO_HIT
+     en su corrida más reciente. No los revirtió nadie: la corrida siguiente no
+     los encontró."
+  - "DISCARDED lo descartó el analista y NO es PEP; POTENTIAL_HIT no está
+     confirmado. Contar por is_pep sin mirar result mete los 29.303 descartados
+     y multiplica por casi ocho."
+  - "No se filtra por el flag is_pep: nunca vale false —cuando no aplica, la
+     clave falta— y hay 5.698 hits confirmados sin él. Filtrarlo descarta PEPs
+     reales por un campo ausente. La única lista en la data es PEP_AR, así que
+     un hit confirmado ya es un match de PEP."
+  - "Como escalón de riesgo alto está CONGELADA en vigente (D-13); acá, como
+     pregunta directa, sigue abierta."
+
+derivacion:
+  - paso: total
+    texto: "Clientes de la institución"
+  - paso: activos
+    texto: "activos (no dados de baja)"
+  - paso: con_screening
+    texto: "con al menos un screening"
+  - paso: pep_historico
+    texto: "alguna vez dieron hit confirmado"
+  - paso: pep_vigente
+    texto: "= su screening más reciente da hit confirmado"
+
+resultado: pep_vigente
+
+exclusiones:
+  - "clientes dados de baja"
+  - "hits descartados por el analista: no son PEP"
+  - "hits potenciales: no están confirmados"
+
+opciones:
+  - "los que HOY figuran como PEP (su screening más reciente da hit confirmado)"
+  - "los que ALGUNA VEZ dieron positivo (cualquiera de sus screenings históricos)"
+
+supuestos:
+  - "Si no se aclara, se responde por el screening vigente y se dice cuántos son
+    los históricos, que es el otro número posible."
+
+no_aplica_cuando: |
+  La pregunta es por sanciones, OFAC o cualquier lista que no sea de PEPs
+  argentinos: el catálogo tiene quince y en la data aparece una sola. Eso no se
+  puede responder. Tampoco aplica a las alertas de regla PEP_ACTIVITY o
+  SANCTION_MATCH: son el monitoreo AML, otro subsistema.
+
+golden_sql: |
+  WITH screening_vigente AS MATERIALIZED (
+      SELECT DISTINCT ON (s.client_id) s.client_id, s.result
+      FROM screenings s
+      WHERE s.tenant_id = %(tenant)s AND s.deleted_at IS NULL
+      ORDER BY s.client_id, s.screened_at DESC
+  ),
+  alguna_vez AS MATERIALIZED (
+      SELECT DISTINCT s.client_id
+      FROM screenings s
+      WHERE s.tenant_id = %(tenant)s AND s.deleted_at IS NULL
+        AND s.result = 'CONFIRMED_HIT'
+  ),
+  clasificados AS (
+      SELECT
+          c.deleted_at IS NULL                        AS vivo,
+          sv.client_id IS NOT NULL                    AS con_screening,
+          av.client_id IS NOT NULL                    AS historico,
+          coalesce(sv.result = 'CONFIRMED_HIT', false) AS vigente
+      FROM clients c
+      LEFT JOIN screening_vigente sv ON sv.client_id = c.id
+      LEFT JOIN alguna_vez        av ON av.client_id = c.id
+      WHERE c.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                AS total,
+      count(*) FILTER (WHERE vivo)                            AS activos,
+      count(*) FILTER (WHERE vivo AND con_screening)          AS con_screening,
+      count(*) FILTER (WHERE vivo AND historico)              AS pep_historico,
+      count(*) FILTER (WHERE vivo AND vigente)                AS pep_vigente
+  FROM clasificados;
+
+verificacion_sql: |
+  -- Segundo camino: se elige el screening vigente con una función de ventana
+  -- en vez de un DISTINCT ON, y se cuenta desde screenings hacia clients.
+  SELECT count(*)
+  FROM (
+      SELECT s.client_id, s.result,
+             row_number() OVER (PARTITION BY s.client_id ORDER BY s.screened_at DESC) AS n
+      FROM screenings s
+      WHERE s.tenant_id = %(tenant)s AND s.deleted_at IS NULL
+  ) ultimo
+  WHERE ultimo.n = 1
+    AND ultimo.result = 'CONFIRMED_HIT'
+    AND EXISTS (
+        SELECT 1 FROM clients c
+        WHERE c.tenant_id = %(tenant)s AND c.id = ultimo.client_id
+          AND c.deleted_at IS NULL
+    );

@@ -1,0 +1,117 @@
+concepto: misma_persona
+nombre_humano: "Clientes que son probablemente la misma persona"
+
+definicion: |
+  Dos legajos son probablemente la misma persona cuando comparten tipo y número
+  de documento, comparando el número sin guiones ni separadores. No se comparan
+  nombres ni correos: el sistema puede decir "el mismo CUIT escrito distinto", y
+  eso lo audita cualquiera.
+
+depende_de_config: []
+periodo_por_defecto: este_año
+parametros: []
+
+trampas:
+  - "El documento tiene dos formatos, mitad y mitad: con guiones y sólo dígitos.
+     Normalizar multiplica por 3,6 lo que se detecta."
+  - "La cascada CAMBIA DE UNIDAD entre escalones —legajos, grupos, legajos— y no
+     se lee como una resta. La pantalla tiene que decir de qué habla cada línea."
+  - "document_type y document_number son nullable aunque hoy no haya un solo
+     NULL: el agrupamiento tiene que ser NULL-safe igual."
+  - "No detecta a la misma persona cargada con DNI en un registro y CUIT en
+     otro, ni variantes del nombre. Es una limitación asumida y se declara."
+
+derivacion:
+  - paso: total
+    texto: "Clientes de la institución"
+  - paso: activos
+    texto: "activos (no dados de baja)"
+  - paso: con_documento
+    texto: "con documento cargado"
+  - paso: personas_distintas
+    texto: "documentos distintos, ya normalizados"
+  - paso: personas_repetidas
+    texto: "= documentos que aparecen en más de un legajo"
+  - paso: legajos_repetidos
+    texto: "legajos involucrados en esas repeticiones"
+
+resultado: personas_repetidas
+
+exclusiones:
+  - "clientes dados de baja"
+  - "clientes sin documento cargado"
+
+supuestos:
+  - "El parecido se establece sólo por documento normalizado. No detecta a la
+    misma persona cargada con dos tipos de documento distintos, ni por nombre
+    parecido."
+
+no_aplica_cuando: |
+  La pregunta pide unificar o deduplicar de verdad (escribir), o busca a la
+  misma persona entre instituciones distintas, que además sería cruzar datos
+  ajenos. Tampoco aplica si se espera detección por nombre o por correo.
+
+golden_sql: |
+  WITH vivos AS (
+      SELECT
+          c.id,
+          c.deleted_at IS NULL AS vivo,
+          c.document_type,
+          nullif(regexp_replace(coalesce(c.document_number, ''),
+                                '[^0-9A-Za-z]', '', 'g'), '') AS documento
+      FROM clients c
+      WHERE c.tenant_id = %(tenant)s
+  ),
+  grupos AS (
+      SELECT document_type, documento, count(*) AS legajos
+      FROM vivos
+      WHERE vivo AND document_type IS NOT NULL AND documento IS NOT NULL
+      GROUP BY document_type, documento
+  )
+  SELECT
+      (SELECT count(*) FROM vivos)                                     AS total,
+      (SELECT count(*) FROM vivos WHERE vivo)                          AS activos,
+      (SELECT count(*) FROM vivos
+        WHERE vivo AND document_type IS NOT NULL
+          AND documento IS NOT NULL)                                   AS con_documento,
+      (SELECT count(*) FROM grupos)                                    AS personas_distintas,
+      (SELECT count(*) FROM grupos WHERE legajos > 1)                  AS personas_repetidas,
+      (SELECT coalesce(sum(legajos), 0) FROM grupos WHERE legajos > 1) AS legajos_repetidos;
+
+desglose_sql: |
+  WITH vivos AS (
+      SELECT c.id, c.full_name, c.document_type,
+             nullif(regexp_replace(coalesce(c.document_number, ''),
+                                   '[^0-9A-Za-z]', '', 'g'), '') AS documento
+      FROM clients c
+      WHERE c.tenant_id = %(tenant)s AND c.deleted_at IS NULL
+  )
+  SELECT document_type, documento, count(*) AS legajos,
+         array_agg(id ORDER BY id) AS ids
+  FROM vivos
+  WHERE document_type IS NOT NULL AND documento IS NOT NULL
+  GROUP BY document_type, documento
+  HAVING count(*) > 1
+  ORDER BY count(*) DESC, documento
+  LIMIT 5;
+
+verificacion_sql: |
+  -- Segundo camino: la repetición se detecta con una función de ventana sobre
+  -- cada legajo, sin GROUP BY ni HAVING, y después se cuentan los documentos
+  -- distintos que quedaron marcados.
+  SELECT count(DISTINCT (document_type, documento))
+  FROM (
+      SELECT c.document_type,
+             nullif(regexp_replace(coalesce(c.document_number, ''),
+                                   '[^0-9A-Za-z]', '', 'g'), '') AS documento,
+             count(*) OVER (
+                 PARTITION BY c.document_type,
+                              nullif(regexp_replace(coalesce(c.document_number, ''),
+                                                    '[^0-9A-Za-z]', '', 'g'), '')
+             ) AS legajos
+      FROM clients c
+      WHERE c.tenant_id = %(tenant)s AND c.deleted_at IS NULL
+  ) marcados
+  WHERE document_type IS NOT NULL
+    AND documento IS NOT NULL
+    AND legajos > 1;

@@ -1,0 +1,146 @@
+concepto: riesgo_alto
+nombre_humano: "Cliente de riesgo alto"
+
+definicion: |
+  Un cliente vivo es de riesgo alto si su evaluación de riesgo vigente supera el
+  umbral configurado por su institución, si está marcado a mano como riesgo alto,
+  o —sólo donde la institución lo configuró así— si es PEP vigente.
+
+depende_de_config: [high_risk_score_threshold, pep_is_high_risk]
+periodo_por_defecto: este_año
+parametros: []
+
+trampas:
+  - "El umbral varía por institución y está versionado: vale el vigente al
+     AS_OF. Tomar la versión vieja infla hasta 9,6 veces."
+  - "Las tres fuentes son DISJUNTAS: la cascada suma sin nota al pie. Omitir la
+     marca manual pierde 1 de cada 4; omitir el PEP, otro 9 %."
+  - "Borrar un cliente borra su evaluación vigente pero NO su historia: quedan
+     103.146 evaluaciones vivas de clientes borrados. El filtro va en las dos
+     tablas, no sólo en risk_assessments."
+  - "Los marcados a mano se borran 13 veces más que el promedio: olvidar el
+     deleted_at de clients acá no infla un 3 % sino un 60 %."
+  - "El escalón PEP usa PEP vigente y está congelado (D-13): hay que declararlo,
+     porque la pregunta directa por PEPs da otro número en la misma sesión."
+  - "client_risk_overrides tiene el nombre exacto de lo que uno busca y no
+     sirve: registra que hubo un override, no a qué valor."
+  - "screening_vigente va AS MATERIALIZED o el plan se degrada a timeout."
+
+derivacion:
+  - paso: total
+    texto: "Clientes de la institución"
+  - paso: activos
+    texto: "activos (no dados de baja)"
+  - paso: con_evaluacion
+    texto: "con evaluación de riesgo vigente"
+  - paso: por_score
+    texto: "score ≥ umbral de tu institución"
+  - paso: por_marca
+    texto: "+ marcados a mano como riesgo alto"
+  - paso: por_pep
+    texto: "+ PEP vigentes (tu institución los cuenta)"
+  - paso: riesgo_alto
+    texto: "= clientes de riesgo alto"
+
+resultado: riesgo_alto
+
+exclusiones:
+  - "clientes dados de baja"
+  - "evaluaciones de riesgo históricas: sólo cuenta la vigente"
+
+supuestos:
+  - "El escalón de PEP cuenta a quien figura como hit confirmado en su screening
+    más reciente, no a quien alguna vez lo dio."
+
+no_aplica_cuando: |
+  La pregunta se refiere al riesgo de una transacción, de un país o de una
+  contraparte, y no al de un cliente. Tampoco aplica a "¿a qué valor se
+  overrideó el riesgo de este cliente?", que no se puede responder.
+
+golden_sql: |
+  WITH config AS (
+      SELECT DISTINCT ON (key) key, value #>> '{}' AS valor
+      FROM tenant_config
+      WHERE tenant_id = %(tenant)s
+        AND effective_from_date <= %(as_of)s::date
+      ORDER BY key, effective_from_date DESC
+  ),
+  umbral AS (
+      SELECT valor::int AS score FROM config WHERE key = 'high_risk_score_threshold'
+  ),
+  perilla_pep AS (
+      SELECT valor::boolean AS manda FROM config WHERE key = 'pep_is_high_risk'
+  ),
+  screening_vigente AS MATERIALIZED (
+      SELECT DISTINCT ON (s.client_id) s.client_id, s.result
+      FROM screenings s
+      WHERE s.tenant_id = %(tenant)s AND s.deleted_at IS NULL
+      ORDER BY s.client_id, s.screened_at DESC
+  ),
+  clasificados AS (
+      SELECT
+          c.deleted_at IS NULL                                    AS vivo,
+          ra.client_id IS NOT NULL                                AS evaluado,
+          coalesce(ra.score >= u.score, false)                    AS por_score,
+          coalesce(c.manual_high_risk_flag, false)                AS por_marca,
+          coalesce(p.manda AND sv.result = 'CONFIRMED_HIT', false) AS por_pep
+      FROM clients c
+      CROSS JOIN umbral u
+      CROSS JOIN perilla_pep p
+      LEFT JOIN risk_assessments ra
+             ON ra.tenant_id = %(tenant)s
+            AND ra.client_id = c.id
+            AND ra.is_current
+            AND ra.deleted_at IS NULL
+      LEFT JOIN screening_vigente sv ON sv.client_id = c.id
+      WHERE c.tenant_id = %(tenant)s
+  )
+  SELECT
+      count(*)                                                        AS total,
+      count(*) FILTER (WHERE vivo)                                    AS activos,
+      count(*) FILTER (WHERE vivo AND evaluado)                       AS con_evaluacion,
+      count(*) FILTER (WHERE vivo AND evaluado AND por_score)         AS por_score,
+      count(*) FILTER (WHERE vivo AND evaluado AND por_marca)         AS por_marca,
+      count(*) FILTER (WHERE vivo AND evaluado AND por_pep)           AS por_pep,
+      count(*) FILTER (WHERE vivo AND evaluado
+                         AND (por_score OR por_marca OR por_pep))     AS riesgo_alto
+  FROM clasificados;
+
+verificacion_sql: |
+  -- Segundo camino: EXISTS correlacionado por cliente, sin joins ni FILTER, y
+  -- resolviendo la config con subconsultas escalares en vez de un CTE.
+  SELECT count(*)
+  FROM clients c
+  WHERE c.tenant_id = %(tenant)s
+    AND c.deleted_at IS NULL
+    AND EXISTS (
+        SELECT 1 FROM risk_assessments ra
+        WHERE ra.tenant_id = %(tenant)s AND ra.client_id = c.id
+          AND ra.is_current AND ra.deleted_at IS NULL
+    )
+    AND (
+        EXISTS (
+            SELECT 1 FROM risk_assessments ra
+            WHERE ra.tenant_id = %(tenant)s AND ra.client_id = c.id
+              AND ra.is_current AND ra.deleted_at IS NULL
+              AND ra.score >= (
+                  SELECT (value #>> '{}')::int FROM tenant_config
+                  WHERE tenant_id = %(tenant)s AND key = 'high_risk_score_threshold'
+                    AND effective_from_date <= %(as_of)s::date
+                  ORDER BY effective_from_date DESC LIMIT 1
+              )
+        )
+        OR c.manual_high_risk_flag
+        OR (
+            (SELECT (value #>> '{}')::boolean FROM tenant_config
+             WHERE tenant_id = %(tenant)s AND key = 'pep_is_high_risk'
+               AND effective_from_date <= %(as_of)s::date
+             ORDER BY effective_from_date DESC LIMIT 1)
+            AND (
+                SELECT s.result FROM screenings s
+                WHERE s.tenant_id = %(tenant)s AND s.client_id = c.id
+                  AND s.deleted_at IS NULL
+                ORDER BY s.screened_at DESC LIMIT 1
+            ) = 'CONFIRMED_HIT'
+        )
+    );

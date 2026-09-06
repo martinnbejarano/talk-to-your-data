@@ -1,0 +1,190 @@
+concepto: monto_transado
+nombre_humano: "Monto transado"
+
+definicion: |
+  El monto transado es la suma de los importes liquidados del período,
+  desglosada por moneda y por sentido. Nunca es un número solo: no hay tabla de
+  tipos de cambio, así que un total único sería una cotización inventada, y como
+  todos los importes son positivos, sumar entradas con salidas no netea nada.
+
+depende_de_config: []
+periodo_por_defecto: ultimo_trimestre
+parametros: [periodo, "segmento de clientes (opcional)"]
+
+trampas:
+  - "No hay tipos de cambio y las 40 instituciones operan en las 4 monedas: un
+     total único, o un total en dólares, no se puede responder."
+  - "amount es siempre positivo y el sentido vive en direction: un sum(amount) a
+     secas suma entradas con salidas. El desglose por sentido es obligatorio."
+  - "REVERSED (20 %) y PENDING (19,9 %) no son movimiento efectivo. Contar todo
+     infla el monto un 66 %. El soft-delete (2,07 %) es un filtro aparte."
+  - "El desglose NO tiene ocho filas fijas: cuántas monedas y sentidos aparecen
+     sale de la data del segmento. Los de riesgo alto operan sólo en ARS (los
+     dos sentidos) y USD entrante."
+  - "El segmento de riesgo alto tiene importes fijos (1.000,00 ARS · 200,00 USD,
+     un único monto por combinación) y una operación USD entrante por cliente.
+     Reconciliación gratis: esas operaciones son tantas como clientes."
+  - "Los CTE del segmento van AS MATERIALIZED. Sin eso el planificador recalcula
+     el screening vigente una vez por fila: de 100 ms a timeout."
+
+derivacion:
+  - paso: total
+    texto: "Transacciones del período"
+  - paso: activas
+    texto: "no borradas"
+  - paso: del_segmento
+    texto: "de clientes de riesgo alto"
+  - paso: liquidadas
+    texto: "= liquidadas (movimiento efectivo)"
+
+resultado: liquidadas
+
+exclusiones:
+  - "transacciones revertidas: no son movimiento efectivo"
+  - "transacciones pendientes: todavía no se liquidaron"
+  - "transacciones borradas"
+
+supuestos:
+  - "El monto es bruto, no neto: se informa por separado lo que entró y lo que
+    salió, porque los importes no traen signo."
+  - "Los montos no se convierten entre monedas: la respuesta es una cifra por
+    moneda y sentido presentes en la data, no una sola."
+
+no_aplica_cuando: |
+  Se pide un total único, un total en dólares, o cualquier conversión entre
+  monedas: falta una tabla de tipos de cambio y la base no la tiene.
+
+golden_sql: |
+  WITH config AS (
+      SELECT DISTINCT ON (key) key, value #>> '{}' AS valor
+      FROM tenant_config
+      WHERE tenant_id = %(tenant)s
+        AND effective_from_date <= %(as_of)s::date
+      ORDER BY key, effective_from_date DESC
+  ),
+  umbral AS (
+      SELECT valor::int AS score FROM config WHERE key = 'high_risk_score_threshold'
+  ),
+  perilla_pep AS (
+      SELECT valor::boolean AS manda FROM config WHERE key = 'pep_is_high_risk'
+  ),
+  screening_vigente AS MATERIALIZED (
+      SELECT DISTINCT ON (s.client_id) s.client_id, s.result
+      FROM screenings s
+      WHERE s.tenant_id = %(tenant)s AND s.deleted_at IS NULL
+      ORDER BY s.client_id, s.screened_at DESC
+  ),
+  riesgo_alto AS MATERIALIZED (
+      SELECT c.id
+      FROM clients c
+      CROSS JOIN umbral u
+      CROSS JOIN perilla_pep p
+      JOIN risk_assessments ra
+        ON ra.tenant_id = %(tenant)s AND ra.client_id = c.id
+       AND ra.is_current AND ra.deleted_at IS NULL
+      LEFT JOIN screening_vigente sv ON sv.client_id = c.id
+      WHERE c.tenant_id = %(tenant)s
+        AND c.deleted_at IS NULL
+        AND (ra.score >= u.score
+             OR c.manual_high_risk_flag
+             OR (p.manda AND sv.result = 'CONFIRMED_HIT'))
+  )
+  SELECT
+      count(*)                                                      AS total,
+      count(*) FILTER (WHERE t.deleted_at IS NULL)                  AS activas,
+      count(*) FILTER (WHERE t.deleted_at IS NULL
+                         AND r.id IS NOT NULL)                      AS del_segmento,
+      count(*) FILTER (WHERE t.deleted_at IS NULL
+                         AND r.id IS NOT NULL
+                         AND t.status = 'SETTLED')                  AS liquidadas
+  FROM transactions t
+  LEFT JOIN riesgo_alto r ON r.id = t.client_id
+  WHERE t.tenant_id = %(tenant)s
+    AND t.tx_date >= %(desde)s::date
+    AND t.tx_date <  %(hasta)s::date;
+
+desglose_sql: |
+  WITH config AS (
+      SELECT DISTINCT ON (key) key, value #>> '{}' AS valor
+      FROM tenant_config
+      WHERE tenant_id = %(tenant)s
+        AND effective_from_date <= %(as_of)s::date
+      ORDER BY key, effective_from_date DESC
+  ),
+  umbral AS (
+      SELECT valor::int AS score FROM config WHERE key = 'high_risk_score_threshold'
+  ),
+  perilla_pep AS (
+      SELECT valor::boolean AS manda FROM config WHERE key = 'pep_is_high_risk'
+  ),
+  screening_vigente AS MATERIALIZED (
+      SELECT DISTINCT ON (s.client_id) s.client_id, s.result
+      FROM screenings s
+      WHERE s.tenant_id = %(tenant)s AND s.deleted_at IS NULL
+      ORDER BY s.client_id, s.screened_at DESC
+  ),
+  riesgo_alto AS MATERIALIZED (
+      SELECT c.id
+      FROM clients c
+      CROSS JOIN umbral u
+      CROSS JOIN perilla_pep p
+      JOIN risk_assessments ra
+        ON ra.tenant_id = %(tenant)s AND ra.client_id = c.id
+       AND ra.is_current AND ra.deleted_at IS NULL
+      LEFT JOIN screening_vigente sv ON sv.client_id = c.id
+      WHERE c.tenant_id = %(tenant)s
+        AND c.deleted_at IS NULL
+        AND (ra.score >= u.score
+             OR c.manual_high_risk_flag
+             OR (p.manda AND sv.result = 'CONFIRMED_HIT'))
+  )
+  SELECT t.currency, t.direction, count(*) AS operaciones, sum(t.amount) AS monto
+  FROM transactions t
+  JOIN riesgo_alto r ON r.id = t.client_id
+  WHERE t.tenant_id = %(tenant)s
+    AND t.deleted_at IS NULL
+    AND t.status = 'SETTLED'
+    AND t.tx_date >= %(desde)s::date
+    AND t.tx_date <  %(hasta)s::date
+  GROUP BY t.currency, t.direction
+  ORDER BY t.currency, t.direction;
+
+verificacion_sql: |
+  -- Segundo camino: el segmento entra como IN sobre una subconsulta en vez de
+  -- como JOIN, y el filtro de status y de borrado va en el WHERE en vez de en
+  -- un FILTER.
+  SELECT count(*)
+  FROM transactions t
+  WHERE t.tenant_id = %(tenant)s
+    AND t.deleted_at IS NULL
+    AND t.status = 'SETTLED'
+    AND t.tx_date >= %(desde)s::date
+    AND t.tx_date <  %(hasta)s::date
+    AND t.client_id IN (
+        SELECT c.id
+        FROM clients c
+        WHERE c.tenant_id = %(tenant)s
+          AND c.deleted_at IS NULL
+          AND EXISTS (SELECT 1 FROM risk_assessments ra
+                      WHERE ra.tenant_id = %(tenant)s AND ra.client_id = c.id
+                        AND ra.is_current AND ra.deleted_at IS NULL)
+          AND (
+              EXISTS (SELECT 1 FROM risk_assessments ra
+                      WHERE ra.tenant_id = %(tenant)s AND ra.client_id = c.id
+                        AND ra.is_current AND ra.deleted_at IS NULL
+                        AND ra.score >= (SELECT (value #>> '{}')::int FROM tenant_config
+                                         WHERE tenant_id = %(tenant)s
+                                           AND key = 'high_risk_score_threshold'
+                                           AND effective_from_date <= %(as_of)s::date
+                                         ORDER BY effective_from_date DESC LIMIT 1))
+              OR c.manual_high_risk_flag
+              OR ((SELECT (value #>> '{}')::boolean FROM tenant_config
+                   WHERE tenant_id = %(tenant)s AND key = 'pep_is_high_risk'
+                     AND effective_from_date <= %(as_of)s::date
+                   ORDER BY effective_from_date DESC LIMIT 1)
+                  AND (SELECT s.result FROM screenings s
+                       WHERE s.tenant_id = %(tenant)s AND s.client_id = c.id
+                         AND s.deleted_at IS NULL
+                       ORDER BY s.screened_at DESC LIMIT 1) = 'CONFIRMED_HIT')
+          )
+    );
