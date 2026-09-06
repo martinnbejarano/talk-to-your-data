@@ -207,7 +207,7 @@ una contra la data real; el detalle y las consultas están en
 | 4   | La configuración por institución está versionada en el tiempo               | **confirmada**        | Sólo 3 tenants de 40 la tienen versionada. Tomar la versión vieja infla **9,6×** (5.399 → 51.962)               |
 | 5   | No hay tipos de cambio                                                      | **confirmada**        | Y los **40** tenants operan en las 4 monedas: no existe el caso mono-moneda                                     |
 | 6   | Las transacciones revertidas no son movimiento efectivo                     | **confirmada**        | `REVERSED` es el 20,0 % y `PENDING` otro 19,9 %. Contar todo infla el volumen **66 %**                          |
-| 7   | Un match descartado por el analista no es un PEP real                       | **confirmada y peor** | `is_pep` nunca vale `false` (falta la clave). Y hay 5.698 `CONFIRMED_HIT` contra `PEP_AR` **sin** el flag       |
+| 7   | Un match descartado por el analista no es un PEP real                       | **confirmada y peor** | `is_pep` nunca vale `false` (falta la clave), hay 5.698 `CONFIRMED_HIT` contra `PEP_AR` **sin** el flag, y `screenings` está historizada **sin `is_current`**: el 69,5 % de los que alguna vez dieron hit hoy dan `NO_HIT` |
 | 8   | Una alerta cerrada como falso positivo no es un hallazgo                    | **confirmada**        | `CLOSED_FALSE_POSITIVE` es el 34,8 %. Contar todas infla **2,3×**                                               |
 | 9   | Un caso abierto no tiene tiempo de resolución: es N/A, no cero              | **confirmada**        | El 40 % está sin cerrar. El promedio va de 2,71 a 25,97 días según qué se haga con ellos: **9,6×**              |
 | 10  | El vínculo entre alertas y casos no está donde parece                       | **desmentida: no existe** | `alerts.case_id` está 100 % en NULL y `alert_case_links.alert_id` es **una copia de `case_id`** en las 10.629 filas. Sólo "funciona" en el tenant 1, por superposición de rangos de id |
@@ -247,7 +247,7 @@ Estado después de H1. Cuatro cerradas, dos abiertas a propósito.
 | **Fuera de SLA**        | ✅ cerrada          | Dos poblaciones, las dos necesarias: sin revisar con `AS_OF - triggered_at > sla`, más revisadas con `first_reviewed_at - triggered_at > sla`. El plazo es `tenant_config.review_sla_hours`         |
 | **Cliente onboardeado** | ⚠️ con supuesto    | `APPROVED` con `onboarded_at` en el período. Los 307.444 aprobados sin fecha quedan fuera y **hay que declararlo con el número**                                                                    |
 | **Hallazgo real**       | 🔓 abierta          | `CLOSED_TRUE_POSITIVE` seguro. Las `ESCALATED` dependen de `tenant_config.escalated_counts_as_finding`, que existe y varía 20/20. La diferencia es **+50 %**                                        |
-| **PEP**                 | 🔓 abierta          | Descartada la lectura floja (`is_pep` sin mirar `result`: mete los descartados). Quedan dos a 67 % de distancia: `CONFIRMED_HIT` a secas o `CONFIRMED_HIT AND is_pep`                               |
+| **PEP**                 | 🔓 abierta          | Descartada la lectura floja (`is_pep` sin mirar `result`). Quedan cuatro sobre **dos ejes**: el flag `is_pep` (×1,7) y si vale el screening **vigente** o cualquiera de los 4-5 históricos (×3,3). En el tenant 3 va de 2.161 a 404 |
 
 
 Las dos abiertas lo están por la misma razón: **las dos tienen una perilla en

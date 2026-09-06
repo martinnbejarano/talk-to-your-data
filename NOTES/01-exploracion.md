@@ -125,6 +125,16 @@ sar_reports.case_id          0 de     5.356
 materializó: los joins del producto son seguros y no hace falta un `LEFT JOIN`
 defensivo en ninguno.
 
+Tres verificaciones más, del mismo tipo, que cierran agujeros de nullability que
+el esquema deja abiertos y la data no usa:
+
+- **`alerts.client_id` es nullable y no hay ni un `NULL`** en 202.556 filas. Toda
+  alerta tiene cliente: el join `alerts → clients` no necesita ser `LEFT`.
+- **`clients.document_type` y `document_number` son nullables y no hay ni un
+  `NULL`** en 1,19 M de filas (importa para el dedup de D-09).
+- **`clients.country` cae siempre en el catálogo `countries`**: 10 países usados
+  sobre 10 disponibles, cero fuera de catálogo.
+
 Lo mismo con el único catálogo que se joinea de verdad: los 8 `rule_code` de
 `alerts` están los 8 en `alert_rules`, sin huérfanos. (Dato al margen que
 contradice a la sección 5: existen las reglas `SANCTION_MATCH` (7.957 alertas) y
@@ -221,13 +231,16 @@ screenings                             ← la única con estructura real
 fuerte y me ahorra una línea entera de exploración: no hay nada escondido en el
 JSONB de `alerts`, `cases`, `transactions` ni `risk_assessments`.
 
-Las dos que sí tienen contenido:
+Las dos que sí tienen contenido, y en las dos las claves de primer nivel están
+contadas sobre la tabla entera, no sobre una muestra:
 
 - **`clients.metadata`**, con dos formas disjuntas y ninguna clave compartida:
   `{"source": "kyc_onboarding"}` en 11.943 filas y
   `{"manual_review_reason": "enhanced_due_diligence"}` en 11.920. El segundo
   número reaparece en la sección 4 y no es casualidad.
-- **`screenings.metadata`**, que es la sección 5.
+- **`screenings.metadata`**, con exactamente **dos** claves en 4,8 M de filas
+  —`matches` (72.951) e `is_pep` (67.253)— y `{}` en las 4.772.000 restantes,
+  que son los `NO_HIT`. No hay ninguna clave escondida. Es la sección 5.
 
 ---
 
@@ -446,8 +459,54 @@ literalmente la trampa 7 del diccionario. Entre (b) y (c) hay un **7,9×** contr
 diccionario sugiere, (b) es la que dice que un hit confirmado contra una lista de
 PEPs es un PEP aunque falte el flag.
 
+### El eje que casi se me pasa: "alguna vez" no es "hoy"
+
+Las tres definiciones de arriba comparten un supuesto que no había mirado, y es
+el más grande de todos: **preguntan si el cliente dio hit alguna vez.**
+
+`screenings` es una tabla historizada igual que `risk_assessments` —cada cliente
+tiene **4 o 5 corridas**— pero, a diferencia de aquella, **no tiene `is_current`
+ni nada que marque cuál vale hoy.** El diccionario no lo menciona, y como muestra
+una sola forma de `metadata` es fácil leerla como si hubiera un screening por
+cliente. Hay cinco.
+
+De los clientes que alguna vez dieron `CONFIRMED_HIT`, esto dice su screening más
+reciente:
+
+```
+su último screening dice NO_HIT ........... 1.568   (69,5 %)
+su último screening dice CONFIRMED_HIT ....   688   (30,5 %)
+```
+
+**Siete de cada diez "PEPs" dejaron de serlo en su corrida más reciente.** Las
+cuatro definiciones, entonces:
+
+| definición | tenant 3 | tenant 14 |
+|---|---:|---:|
+| (a) `is_pep = true`, sin mirar `result` | 10.237 | 440 |
+| (b) alguna vez `CONFIRMED_HIT` | 2.161 | 95 |
+| (c) alguna vez `CONFIRMED_HIT AND is_pep` | 1.297 | 57 |
+| **(d) su screening vigente es `CONFIRMED_HIT`** | **660** | **28** |
+| (e) vigente `CONFIRMED_HIT AND is_pep` | 404 | 20 |
+
+De (a) a (e) hay un **25×**. El eje temporal (b→d, un factor 3,3) pesa más que el
+del flag `is_pep` (b→c, un factor 1,7), y es el que ninguna lectura del
+diccionario sugiere.
+
+Dos cosas que verifiqué antes de creerme esto:
+
+- **Ningún cliente se contradice.** De los 2.256 que alguna vez dieron hit
+  confirmado, **cero** tienen además un `DISCARDED`. Los que "dejan de ser PEP"
+  pasan a `NO_HIT`, no a descartado: no es que el analista revirtió el hit, es
+  que la corrida siguiente no lo encontró.
+- **"El screening vigente" está bien definido.** Cero empates de `screened_at`
+  dentro de un mismo cliente, así que el `DISTINCT ON (... ORDER BY screened_at
+  DESC)` es determinístico y no hace falta desempatar por `id`.
+
 **No la cierro acá.** Es el mejor candidato del dataset a
-`RESPONDIDA_CON_SUPUESTO` o `NECESITO_QUE_ACLARES`, y decidir cuál va a H2 con el
+`NECESITO_QUE_ACLARES`: *"¿te referís a los clientes que hoy figuran como PEP
+(660) o a los que alguna vez dieron positivo (2.161)?"* es una repregunta que un
+oficial de compliance entiende y que cambia el número por tres. Va a H2 con el
 eval de por medio (D-10). Lo que sí queda fijo es que (a) está descartada.
 
 ---
@@ -607,6 +666,13 @@ reversión, pero tampoco es movimiento efectivo todavía. `SETTLED` sola es la
 lectura defendible, y las otras dos hay que declararlas como exclusión.
 
 El soft-delete de `transactions` (2,07 %) es independiente y se suma.
+
+Un detalle del signo, que importa para la pregunta 3 del enunciado: **`amount` es
+siempre positivo** (de 1,00 a 5.000 en las `IN`, de 1,00 a 9.999 en las `OUT`),
+sin ceros ni negativos. La dirección vive sólo en `direction`, así que un
+`sum(amount)` a secas **suma entradas y salidas** en vez de netearlas. "Monto
+total transado" es defendible como la suma bruta, pero hay que decir que lo es, y
+el desglose por `direction` es tan obligatorio como el de moneda.
 
 ### Trampa 8 · Estados de alerta: el ciclo de vida es impecable
 
@@ -820,7 +886,7 @@ Estado de la tabla "Definiciones a fijar" de `DECISIONS.md` después de explorar
 | **Fuera de SLA** | ✅ **cerrada** | Dos poblaciones, las dos necesarias: sin revisar con `AS_OF - triggered_at > sla`, más revisadas con `first_reviewed_at - triggered_at > sla`. El plazo es `tenant_config.review_sla_hours` |
 | **Cliente onboardeado** | ⚠️ **con supuesto** | `APPROVED` con `onboarded_at` en el período. Los **307.444 aprobados sin fecha (41,9 %)** quedan fuera y hay que **declararlo con el número**. No es cerrarla: es elegir la única lectura que responde la pregunta y decir qué costó |
 | **Hallazgo real** | 🔓 **abierta** | `CLOSED_TRUE_POSITIVE` seguro. Las `ESCALATED` dependen de `tenant_config.escalated_counts_as_finding`, que **existe y varía** (20/20). Falta decidir si la config manda o si se repregunta. En el tenant 3 la diferencia es **+50 %** (3.602 → 5.404 en el trimestre) |
-| **PEP** | 🔓 **abierta** | Descartada la lectura floja (`is_pep` sin mirar `result`: mete los descartados). Quedan dos a 67 % de distancia: `CONFIRMED_HIT` a secas (2.161 en el tenant 3) o `CONFIRMED_HIT AND is_pep` (1.297). Se decide con el eval |
+| **PEP** | 🔓 **abierta** | Descartada la lectura floja (`is_pep` sin mirar `result`: mete los descartados). Quedan cuatro, de 2.161 a 404 en el tenant 3, sobre **dos ejes**: el flag `is_pep` (×1,7) y —el que pesa— si vale el screening **vigente** o cualquiera de los 4-5 históricos (×3,3). Se decide con el eval |
 
 Las dos que quedan abiertas lo quedan por la misma razón, y es una buena razón:
 **las dos tienen una perilla en `tenant_config` o una ambigüedad real en la data,
@@ -835,6 +901,8 @@ sería tirar los dos casos de prueba más valiosos que tiene la base.
 | Hallazgo | Va a |
 |---|---|
 | Las 8 definiciones/skills, con sus golden queries en los tenants 3 y 14 | H2 |
+| **`screenings` está historizada sin `is_current`**: hay que decidir si "PEP" mira el screening vigente o cualquiera. Es el eje más pesado de esa definición (×3,3) | H2 |
+| `sum(amount)` suma entradas y salidas: el desglose por `direction` es tan obligatorio como el de moneda | H2 |
 | Decidir `pep_is_high_risk`: ¿un PEP confirmado es riesgo alto por sí solo donde la config dice `true`? | H2 |
 | Decidir "hallazgo real" y "PEP" contra el eval | H2 / H4 |
 | **El gate de `EXPLAIN` no puede rechazar `Seq Scan` a secas**: para las 5 tablas sin índice es el único plan, y cuesta 55–170 ms | H3 · gate de D-06 |

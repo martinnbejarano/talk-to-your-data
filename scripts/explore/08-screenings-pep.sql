@@ -30,3 +30,39 @@ SELECT tenant_id,
        count(DISTINCT client_id) FILTER (WHERE result='CONFIRMED_HIT' AND metadata->>'is_pep'='true')
            AS def_c_confirmado_y_marcado
 FROM screenings WHERE tenant_id IN (3, 14) GROUP BY 1 ORDER BY 1;
+
+\echo '--- 08.4 · el eje que faltaba: PEP "alguna vez" vs. PEP "vigente" ---'
+-- Cada cliente tiene 4 o 5 screenings a lo largo del tiempo y NO hay un
+-- `is_current` como en risk_assessments. Un cliente puede haber dado
+-- CONFIRMED_HIT en 2025 y NO_HIT en su screening más reciente.
+SELECT screenings_por_cliente, count(*) AS clientes FROM (
+    SELECT client_id, count(*) AS screenings_por_cliente
+    FROM screenings WHERE tenant_id = 3 GROUP BY 1) t
+GROUP BY 1 ORDER BY 1;
+
+-- De los que alguna vez dieron hit confirmado, ¿qué dice el screening vigente?
+SELECT ultimo_result, count(*) FROM (
+    SELECT tenant_id, client_id, (array_agg(result ORDER BY screened_at DESC))[1] AS ultimo_result
+    FROM screenings WHERE tenant_id IN (3, 14) GROUP BY 1,2
+    HAVING bool_or(result = 'CONFIRMED_HIT')) t
+GROUP BY 1 ORDER BY 2 DESC;
+
+-- Ningún cliente se contradice (hit confirmado y descartado a la vez), y no hay
+-- empates de fecha: "el screening vigente" está bien definido.
+SELECT count(*) AS clientes_con_empate_en_la_fecha_mas_reciente FROM (
+    SELECT tenant_id, client_id FROM screenings s
+    WHERE tenant_id IN (3, 14)
+      AND screened_at = (SELECT max(screened_at) FROM screenings x
+                         WHERE x.tenant_id = s.tenant_id AND x.client_id = s.client_id)
+    GROUP BY 1,2 HAVING count(*) > 1) t;
+
+-- Las cuatro definiciones, en clientes distintos.
+WITH ultimo AS (
+    SELECT DISTINCT ON (tenant_id, client_id) tenant_id, client_id, result, metadata
+    FROM screenings WHERE tenant_id IN (3, 14)
+    ORDER BY tenant_id, client_id, screened_at DESC, id DESC)
+SELECT tenant_id,
+       count(*) FILTER (WHERE result = 'CONFIRMED_HIT') AS vigente_confirmado,
+       count(*) FILTER (WHERE result = 'CONFIRMED_HIT' AND metadata->>'is_pep' = 'true')
+           AS vigente_confirmado_y_marcado
+FROM ultimo GROUP BY 1 ORDER BY 1;
