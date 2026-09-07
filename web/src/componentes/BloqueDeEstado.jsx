@@ -1,8 +1,16 @@
 import { Hueco, Marcador } from "./Iconos.jsx";
-import { numero } from "../formato.js";
+import { enMinuscula, numero } from "../formato.js";
 
+/** El supuesto se lee como una oración sola —"Se asumió que ..."— y no como un
+ * bloque con título: anunciar que hubo una elección antes de decir cuál fue
+ * costaba una línea entera para no decir todavía nada.
+ *
+ * Con más de un supuesto la costura no cierra en una oración, así que el "Se
+ * asumió que" pasa a encabezar la lista y cada supuesto queda entero. */
 export function Supuesto({ supuestos }) {
   if (!supuestos || supuestos.length === 0) return null;
+
+  const uno = supuestos.length === 1;
 
   return (
     <div className="marca supuesto">
@@ -10,12 +18,20 @@ export function Supuesto({ supuestos }) {
         <Marcador />
       </span>
       <div>
-        <p>
-          <b>Eligió por vos.</b> La pregunta admitía más de una lectura y se tomó ésta:
-        </p>
-        {supuestos.map((supuesto, i) => (
-          <p key={i}>{supuesto}</p>
-        ))}
+        {uno ? (
+          <p>
+            <b>Se asumió que</b> {enMinuscula(supuestos[0])}
+          </p>
+        ) : (
+          <>
+            <p>
+              <b>Se asumió que:</b>
+            </p>
+            {supuestos.map((supuesto, i) => (
+              <p key={i}>{supuesto}</p>
+            ))}
+          </>
+        )}
       </div>
     </div>
   );

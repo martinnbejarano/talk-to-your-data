@@ -7,6 +7,13 @@ export function numero(n) {
   return NUMEROS.format(n);
 }
 
+export function enMinuscula(texto) {
+  if (!texto) return texto;
+  const primera = texto.split(" ")[0];
+  if (primera === primera.toUpperCase()) return texto;
+  return texto[0].toLowerCase() + texto.slice(1);
+}
+
 /** Se parte el texto a mano y no con `new Date()`: `new Date("2026-03-01")` se
  * interpreta en UTC y al oeste de Greenwich retrocede un día, y una fecha de
  * vigencia corrida un día es el error que esta pantalla existe para no cometer. */

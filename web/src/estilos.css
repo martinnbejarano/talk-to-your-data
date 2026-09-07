@@ -245,9 +245,9 @@ body {
 
 .marca {
   display: flex;
-  gap: 9px;
-  margin-top: 18px;
-  padding: 11px 14px;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 9px 12px;
   border-radius: 8px;
   font-size: 14px;
   line-height: 1.5;

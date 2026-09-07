@@ -136,19 +136,19 @@ components:
     textColor: "{colors.supuesto-tinta}"
     typography: "{typography.secondary}"
     rounded: "{rounded.md}"
-    padding: "11px 14px"
+    padding: "9px 12px"
   notice-gap:
     backgroundColor: "{colors.hueco-fondo}"
     textColor: "{colors.hueco-tinta}"
     typography: "{typography.secondary}"
     rounded: "{rounded.md}"
-    padding: "11px 14px"
+    padding: "9px 12px"
   notice-failure:
     backgroundColor: "{colors.falla-fondo}"
     textColor: "{colors.falla-tinta}"
     typography: "{typography.secondary}"
     rounded: "{rounded.md}"
-    padding: "11px 14px"
+    padding: "9px 12px"
   provenance-strip:
     backgroundColor: "{colors.burbuja}"
     textColor: "{colors.tinta}"
@@ -295,7 +295,7 @@ Borders are 1px and hairline-coloured; the only thicker rule in the system is th
 
 ### Notice blocks
 - **Character:** Flat tinted rectangles, 8px radius, 1px tinted border, a 16px stroked icon flush left at the top, 14px text — three of them, one per non-plain answer state.
-- **Assumption (amber):** "the system chose a reading for you", with the chosen reading spelled out. Never behind a disclosure — it is a condition of the sentence above it, not supporting detail.
+- **Assumption (amber):** one sentence — "Se asumió que …" with the chosen reading completing it, never a heading plus a separate line, because announcing that a choice was made before naming it spends a line saying nothing. With more than one assumption the lead-in becomes "Se asumió que:" and each one keeps its own line. Never behind a disclosure — it is a condition of the sentence above it, not supporting detail.
 - **Unanswerable (slate):** no red, no alert triangle. Its icon is a dashed circle with a minus — an absence, drawn as an absence.
 - **Failure (red):** alert triangle, plus the raw error in 12px mono at 85% opacity. Carries `role="alert"`.
 
