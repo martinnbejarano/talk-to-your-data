@@ -40,6 +40,11 @@ class Pregunta(BaseModel):
     historial: list[Turno] = []
 
 
+@app.get("/health")
+def get_health() -> dict:
+    return {"ok": True}
+
+
 @app.get("/instituciones")
 def get_instituciones() -> list[dict]:
     return instituciones_elegibles()
