@@ -1,0 +1,98 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 3,
+    "llamadas": 3,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 3,
+        "pass_1": 0.6666666666666666,
+        "pass_n": 0.6666666666666666
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 17431.6,
+      "p95": 17431.6
+    },
+    "tokens": {
+      "prompt": 59698,
+      "respuesta": 9815
+    },
+    "usd": 0.59,
+    "fallas": {
+      "definicion_equivocada": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-002",
+      "clase": "umbral_versionado_por_institucion",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Tenemos 7.859 clientes de riesgo alto. El conteo toma sólo clientes activos con evaluación vigente y aplica el umbral configurado para la institución.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 16345.9,
+      "pasos": 3,
+      "tokens_prompt": 12886,
+      "tokens_respuesta": 1413,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_5e1667df-fc49-4816-98d1-5212349b264e"
+    },
+    {
+      "id": "c-004",
+      "clase": "agregacion_con_desglose_obligatorio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Para clientes de riesgo alto, en el último trimestre hubo ARS 11.747.000 entrantes, ARS 11.830.000 salientes y USD 1.571.800 entrantes. No lo informo como un total único porque la base no tiene tipos de cambio y las entradas y salidas no se netean.",
+      "motivos": [
+        "sin valor; esperaba 31436",
+        "escalones con otro número: total=180000 (esperaba 1080005)"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 75679.4,
+      "pasos": 5,
+      "tokens_prompt": 33914,
+      "tokens_respuesta": 6852,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_698d18ff-2626-40aa-a0d7-fa84d1b81713"
+    },
+    {
+      "id": "c-013",
+      "clase": "sinonimo_del_dominio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Hay 7.859 clientes de riesgo alto en la institución. El conteo considera clientes activos con evaluación vigente y suma los que superan el umbral, más los marcados manualmente y los PEP vigentes configurados como riesgo alto.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 17431.6,
+      "pasos": 3,
+      "tokens_prompt": 12898,
+      "tokens_respuesta": 1550,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_59b0e97e-2d16-40da-b4e6-fcc76921e1c6"
+    }
+  ]
+}

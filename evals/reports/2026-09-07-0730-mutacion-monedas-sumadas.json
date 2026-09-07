@@ -1,0 +1,81 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 1,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      },
+      "ambigua": {
+        "preguntas": 1,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 37515.3,
+      "p95": 32958.7
+    },
+    "tokens": {
+      "prompt": 39337,
+      "respuesta": 5847
+    },
+    "usd": 0.37,
+    "fallas": {
+      "definicion_equivocada": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-004",
+      "clase": "agregacion_con_desglose_obligatorio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": false,
+      "respuesta": "No puedo dar un monto total único para el último trimestre porque las transacciones liquidadas de clientes de riesgo alto mezclan monedas y sentidos. En la base hay 2 monedas y 2 sentidos; falta una tabla de tipos de cambio y un criterio de neteo para convertir eso en un solo total comparable.",
+      "motivos": [
+        "estado `NO_SE_PUEDE_RESPONDER`, esperaba RESPONDIDA o RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 42071.9,
+      "pasos": 4,
+      "tokens_prompt": 22722,
+      "tokens_respuesta": 3431,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_ce0681da-49c4-4c57-9956-c8cd6dfaf2cc"
+    },
+    {
+      "id": "a-001",
+      "clase": "unidad_no_agregable",
+      "categoria": "ambigua",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "En el último trimestre se transaron ARS 387.340.817,37 entrantes y ARS 388.930.973,67 salientes; también USD 127.647.812,99 entrantes y USD 125.375.215,70 salientes. Lo informo separado por moneda y por sentido porque la base no trae tipo de cambio ni importes con signo para netear entradas contra salidas.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 32958.7,
+      "pasos": 4,
+      "tokens_prompt": 16615,
+      "tokens_respuesta": 2416,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_f3d4b526-98b0-4ca2-a743-3b4c5685a5b4"
+    }
+  ]
+}

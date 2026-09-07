@@ -108,14 +108,23 @@ El paso 5 —romper el código a mano y confirmar que el test falla— aplicado 
 rompemos una skill a propósito y confirmamos que el set lo detecta. Si una mutación no rompe ninguna
 pregunta, **el set tiene un agujero**.
 
-| Mutación deliberada | Debe romper |
-|---|---|
-| Sacar `deleted_at IS NULL` de `riesgo_alto` | El conteo de riesgo alto |
-| Incluir `CLOSED_FALSE_POSITIVE` en `hallazgo_real` | Los hallazgos del trimestre |
-| Tomar el `effective_from_date` más viejo en vez del vigente | Riesgo alto en la institución con umbral versionado |
-| Sumar montos entre monedas | La pregunta ambigua de monto total |
-| Usar `now()` en lugar de `AS_OF` | Todas las preguntas con período |
-| Contar `POTENTIAL_HIT` como PEP | La pregunta de PEPs |
+| Mutación deliberada | Debe romper | Qué pasó al correrla (H4) |
+|---|---|---|
+| Sacar `deleted_at IS NULL` de `riesgo_alto` | El conteo de riesgo alto | **inerte**: 7.859, idéntico |
+| Incluir `CLOSED_FALSE_POSITIVE` en `hallazgo_real` | Los hallazgos del trimestre | **atrapada**: 5.404 → 11.704 |
+| Tomar el `effective_from_date` más viejo en vez del vigente | Riesgo alto en la institución con umbral versionado | **inerte**: 7.859, idéntico |
+| Sumar montos entre monedas | La pregunta ambigua de monto total | sin custodia: su pregunta ya fallaba |
+| Usar `now()` en lugar de `AS_OF` | Todas las preguntas con período | sin custodia: movió mucho (5.404 → 0) y sus preguntas ya fallaban |
+| Contar `POTENTIAL_HIT` como PEP | La pregunta de PEPs | **atrapada**: 7.859 → 9.113 |
 
-Esta tabla se corre una vez, al cerrar H4. Es barata y es la única forma de saber si el
-eval mide algo o simplemente da verde.
+Se corre al cerrar H4 —y las dos "sin custodia" se vuelven a correr al cerrar H5, cuando
+sus preguntas estén en verde—. Es barata y es la única forma de saber si el eval mide algo
+o simplemente da verde.
+
+**Una mutación tiene que romper una pregunta que pasaba.** Romper una que ya estaba roja no
+prueba nada, así que el runner compara siempre contra la línea de base.
+
+**Y una mutación inerte no es, por sí sola, un agujero del set.** Las dos de arriba
+devolvieron el número correcto porque el modelo reconstruye esas reglas del esquema y del
+catálogo, no porque el set no las mire: con `--sin-skills` esas mismas preguntas fallan.
+Cuando nada cae hay que separar las dos causas antes de concluir, y eso está en D-15.

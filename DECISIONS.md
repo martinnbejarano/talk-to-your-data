@@ -241,6 +241,83 @@ un campo ausente, no PEPs falsos.
 usar 660 PEPs y la pregunta directa puede contestar 2.161. No es una inconsistencia, pero
 lo parece: **la derivación tiene que declarar qué definición de PEP usó el escalón.**
 
+
+## D-14 · La línea de base del eval, y qué cuenta como acierto
+
+**Qué decidimos.** El set de 33 preguntas de `evals/questions.yaml` es el instrumento con
+el que se decide si un cambio mejora el sistema. Su primera medición queda acá como línea
+de base, y todo cambio de H5 se justifica contra ella.
+
+**La medición.** 33 preguntas × 3 corridas, US$ 10,70, p50 13,0 s
+(`evals/reports/2026-09-07-0726.md`).
+
+| Categoría | Preguntas | Pass@1 | Pass^3 |
+| --------- | --------- | ------ | ------ |
+| Contestable | 15 | 53 % | 53 % |
+| Ambigua | 8 | 79 % | 62 % |
+| Incontestable | 10 | 53 % | 50 % |
+
+**Fugas cross-tenant: 0**, que es la única métrica que bloquea la entrega. Falsa
+ambigüedad: 0. Timeouts: 0.
+
+**El dato que ordena H5.** En contestables Pass@1 y Pass^3 son **el mismo número**: ocho
+preguntas aciertan las tres veces y siete fallan las tres veces. La falla es
+determinística, así que es de definición y no de estabilidad. La inconsistencia real está
+en las ambiguas (79 % contra 62 %), justo donde el modelo tiene que elegir entre
+repreguntar y suponer.
+
+**Tres decisiones de calificación que el set fija.**
+
+- **Ningún valor esperado se escribe a mano.** `questions.yaml` referencia los 18 números
+  de `valores_esperados.yaml`, que salieron de dos consultas independientes. Un número
+  transcrito se desincroniza de su definición en silencio y el eval da verde midiendo
+  contra una versión vieja.
+- **No alcanza con el número: se compara la cascada entera.** Dos caminos distintos llegan
+  a 7.859 y sólo uno se puede explicar.
+- **Una pregunta por institución sólo cuando una perilla cambia la respuesta correcta.**
+  Donde no cambia nada, la segunda institución no es una clase nueva.
+
+**Las dos preguntas que se escribieron en contra del sistema.** Nombrar otra institución
+tiene que dar `NO_SE_PUEDE_RESPONDER`, y el prompt de hoy dice lo contrario (contestar
+sobre la propia declarándolo como supuesto). Fallan las dos, a propósito. La peor es
+`i-009`, que contestó *"Fintech Cuyo tiene 7.859 clientes de riesgo alto"* — el número de
+**banco_andino**. No es una fuga (el RLS aguantó y el número es propio), y por eso mismo es
+más difícil de ver: sale con la cara de una respuesta correcta y la institución equivocada
+en el sujeto. Arreglarlo, y revisar
+`tests/test_loop.py::test_la_institucion_no_se_deduce_del_texto_aunque_la_pregunta_nombre_otra`,
+es de H5.
+
+**Qué cuesta.** Una corrida completa son US$ 10,70 y unos doce minutos con cuatro hilos.
+Es el precio de que "anda mejor" sea un número y no una impresión.
+
+## D-15 · Las mutaciones se corren contra la línea de base, y una mutación inerte no es un agujero del set
+
+**Qué decidimos.** Una mutación "rompe" una pregunta sólo si esa pregunta **pasaba** antes
+y deja de pasar. Y cuando ninguna cae, no se concluye que el set tenga un agujero sin
+antes separar las dos causas posibles: que el set no custodie la regla, o que la mutación
+no haya movido al sistema.
+
+**Por qué.** De las seis mutaciones de [`plan/testing.md`](plan/testing.md), dos fueron
+atrapadas y dos resultaron **inertes**: sacarle el `deleted_at IS NULL` a riesgo alto y
+tomar el umbral versionado más viejo devolvieron 7.859, exactamente el número correcto. La
+lectura fácil era "el agente ignora la skill". Correr esas mismas preguntas con
+`--sin-skills` la desmiente: sin definiciones el sistema falla las tres, con 10.590 y 7.221
+en vez de 7.859 y sin un solo escalón de la cascada.
+
+La skill es decisiva; lo que no mueve la respuesta es el **fragmento de SQL** mutado. Para
+el borrado lógico y para el umbral, el modelo reconstruye la regla del esquema, del
+catálogo —que declara qué tabla tiene `deleted_at`— y de la exigencia de devolver los
+escalones. Con el umbral hizo falta además descubrir que `get_definition` inyecta el valor
+vigente de la perilla **aparte** del SQL: la primera versión de la mutación no lo tocaba y
+por eso era incompleta. Corregida, el número siguió siendo 7.859.
+
+**Qué queda pendiente.** Dos mutaciones —sumar monedas, y resolver períodos con el reloj—
+no tienen hoy ninguna pregunta en verde que las custodie: sus preguntas existen y están
+rojas por otro motivo. La del reloj movió muchísimo al sistema (`c-005` pasó de 5.404
+hallazgos a **0**) sin que nadie la atrapara. **Las dos se vuelven a correr al cerrar H5**,
+cuando `c-004`, `c-005` y `c-007` estén en verde.
+
+
 ---
 
 ## Trampas del dataset

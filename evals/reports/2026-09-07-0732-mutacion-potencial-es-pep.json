@@ -1,0 +1,82 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 1,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      },
+      "ambigua": {
+        "preguntas": 1,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 19120.0,
+      "p95": 17255.8
+    },
+    "tokens": {
+      "prompt": 25444,
+      "respuesta": 3001
+    },
+    "usd": 0.22,
+    "fallas": {
+      "definicion_equivocada": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-002",
+      "clase": "umbral_versionado_por_institucion",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Tenemos 9.113 clientes de riesgo alto. El conteo toma clientes activos con evaluación vigente y aplica el umbral configurado, la marca manual de alto riesgo y los PEP vigentes cuando corresponde.",
+      "motivos": [
+        "valor 9113, esperaba 7859",
+        "escalones con otro número: por_pep=1968 (esperaba 660), riesgo_alto=9113 (esperaba 7859)"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 17255.8,
+      "pasos": 3,
+      "tokens_prompt": 12957,
+      "tokens_respuesta": 1416,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_02f546fe-fbcb-4b79-8c0c-e02ef5d90429"
+    },
+    {
+      "id": "a-005",
+      "clase": "umbral_de_confirmacion_indefinido",
+      "categoria": "ambigua",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Tenemos 660 clientes PEP activos tomando el screening vigente, es decir, el resultado más reciente de cada cliente. Si se toma la lectura histórica, hay 2161 clientes activos que alguna vez tuvieron un hit confirmado de PEP.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 20984.2,
+      "pasos": 3,
+      "tokens_prompt": 12487,
+      "tokens_respuesta": 1585,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_71ef5182-e67a-4705-a08a-558e43035e3b"
+    }
+  ]
+}

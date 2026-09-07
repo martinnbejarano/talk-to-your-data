@@ -1,0 +1,166 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 6,
+    "llamadas": 6,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 6,
+        "pass_1": 0.5,
+        "pass_n": 0.5
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 12252.7,
+      "p95": 19384.7
+    },
+    "tokens": {
+      "prompt": 95336,
+      "respuesta": 11735
+    },
+    "usd": 0.83,
+    "fallas": {
+      "definicion_equivocada": 2,
+      "numero_no_trazable": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-001",
+      "clase": "conteo_simple_con_periodo",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Este año onboardeamos 18.001 clientes. Además, hay 44.581 clientes aprobados sin fecha de alta registrada, que no se pueden ubicar en ningún período y por eso quedan fuera del conteo.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 19384.7,
+      "pasos": 3,
+      "tokens_prompt": 11719,
+      "tokens_respuesta": 1416,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_81e09956-26f4-4d8b-af0d-5050797612d6"
+    },
+    {
+      "id": "c-004",
+      "clase": "agregacion_con_desglose_obligatorio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": false,
+      "respuesta": "Llegué a un número y no puedo entregarlo como corresponde: alguna cifra no salió de una consulta a la base, o la derivación quedó sin los escalones que la explican. Un número que no puedo explicar entero es peor que ninguno. Volvé a preguntarlo, o pedilo más acotado.",
+      "motivos": [
+        "estado `NO_SE_PUEDE_RESPONDER`, esperaba RESPONDIDA o RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "numero_no_trazable",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 72940.0,
+      "pasos": 5,
+      "tokens_prompt": 35946,
+      "tokens_respuesta": 7236,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_eefd5610-931a-4e1e-aea0-b3ffbf1ed91c"
+    },
+    {
+      "id": "c-005",
+      "clase": "ciclo_de_vida_con_exclusiones",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": false,
+      "respuesta": "En el último trimestre tuvimos 0 hallazgos reales. Se contaron alertas del período cerradas como verdadero positivo y, según la configuración vigente de la institución, también las escaladas; en este período no hubo ninguna de esas dos categorías.",
+      "motivos": [
+        "estado `RESPONDIDA`, esperaba RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 10990.4,
+      "pasos": 3,
+      "tokens_prompt": 12169,
+      "tokens_respuesta": 839,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_5875e85f-215e-4b7e-9604-e39498a93910"
+    },
+    {
+      "id": "c-007",
+      "clase": "calculo_temporal_contra_config",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": false,
+      "respuesta": "En el último trimestre, hay 2.870 alertas fuera del SLA de primera revisión. Todas corresponden a alertas todavía sin revisar que ya vencieron; no hubo alertas revisadas tarde en el período.",
+      "motivos": [
+        "valor 2870, esperaba 9339",
+        "escalones con otro número: total=5570 (esperaba 30605), activas=5570 (esperaba 30605), sin_revisar=5570 (esperaba 7199), sin_revisar_vencidas=2870 (esperaba 4499), revisadas_tarde=0 (esperaba 4840), fuera_de_sla=2870 (esperaba 9339)"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 13515.0,
+      "pasos": 3,
+      "tokens_prompt": 12322,
+      "tokens_respuesta": 1095,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_d42b27a8-87cf-49c4-9121-635b4a02a133"
+    },
+    {
+      "id": "c-012",
+      "clase": "concepto_vecino_que_no_es_hallazgo",
+      "categoria": "contestable",
+      "institucion": "fintech_cuyo",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": true,
+      "respuesta": "En el último trimestre reportamos 12 casos a la UIF.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 7215.8,
+      "pasos": 3,
+      "tokens_prompt": 11487,
+      "tokens_respuesta": 516,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_d565f6f6-c392-4947-b7a2-a92c4afc66d3"
+    },
+    {
+      "id": "c-014",
+      "clase": "reformulacion_sin_la_palabra_del_concepto",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "En lo que va del año hubo 18.001 altas de clientes. Conté sólo clientes aprobados, activos y con fecha de alta registrada dentro del período.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 8227.8,
+      "pasos": 3,
+      "tokens_prompt": 11693,
+      "tokens_respuesta": 633,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_b6bd9b75-8d57-44db-9178-d1421d527727"
+    }
+  ]
+}

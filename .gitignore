@@ -8,7 +8,6 @@ venv/
 node_modules/
 dist/
 .DS_Store
-evals/reports/*.json
 .pytest_cache/
 
 # Las capturas con que se verifica la pantalla a mano: son evidencia de una
@@ -19,3 +18,7 @@ evals/reports/*.json
 # evidencia de una corrida, no fuente. Lo que vale queda en `web/DESIGN.md`.
 web/.impeccable/review/
 web/.impeccable/questions/
+
+# `evals/reports/` sí se versiona, los .md y los .json. El .md es el que se lee y
+# el que cita el README; el .json es contra el que H5 calcula deltas y contra el
+# que el runner compara una mutación. Un reporte que no está no se puede comparar.

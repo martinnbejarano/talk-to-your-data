@@ -1,0 +1,471 @@
+# El set de evaluación · una pregunta por clase de equivalencia.
+#
+# El diseño está en `plan/h4-evals.md`. Lo que hay que saber para leer este
+# archivo:
+#
+# - **Ningún valor esperado se escribe acá.** `valor_esperado` es una
+#   referencia a `evals/valores_esperados.yaml`, donde cada número salió de la
+#   golden query de su skill Y de otra consulta escrita distinto, que tienen que
+#   coincidir o el generador corta. Un número transcrito a mano se desincroniza
+#   en silencio de su definición, y entonces el eval mide contra un número viejo
+#   y da verde.
+# - **Una pregunta existe porque cubre una clase que ninguna otra cubre.** La
+#   misma pregunta en las dos instituciones sólo entra cuando una perilla cambia
+#   la respuesta correcta; donde no cambia nada, la segunda institución no es
+#   una clase nueva. `tests/test_evals.py` verifica que no haya dos con la misma
+#   `clase`.
+# - **`detecta` es el paso 4 de la heurística de `plan/testing.md`**: qué falla
+#   atrapa esta pregunta. Si no se puede nombrar, la pregunta no va.
+#
+# Campos:
+#   id · clase · categoria · institucion · pregunta
+#   estado_esperado    los estados del contrato que cuentan como acierto
+#   valor_esperado     {concepto, escalon?} → se resuelve contra valores_esperados
+#   valores_admisibles varios, para las ambiguas que pueden salir por dos lados
+#   exige_derivacion   los escalones tienen que coincidir con la cascada esperada
+#   exige_desglose     los montos del desglose tienen que aparecer en la respuesta
+#   exige_filas        tiene que devolver filas, no sólo un número
+#   debe_mencionar     conceptos que tienen que estar en definiciones_usadas
+#   historial          turnos previos; el `{n}` lo completa el runner
+
+preguntas:
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Contestables · la respuesta correcta es un número, y es exacto
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - id: c-001
+    clase: conteo_simple_con_periodo
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes onboardeamos este año?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: cliente_onboardeado}
+    exige_derivacion: true
+    debe_mencionar: [cliente_onboardeado]
+    detecta: >-
+      Que cuente altas del período y no aprobados: 4 de cada 10 aprobados no
+      tienen fecha de alta, y confundirlos multiplica el número por seis.
+
+  - id: c-002
+    clase: umbral_versionado_por_institucion
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes de riesgo alto tenemos?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: riesgo_alto}
+    exige_derivacion: true
+    debe_mencionar: [riesgo_alto]
+    detecta: >-
+      Que tome el umbral vigente al AS_OF y no la versión vieja. Es la única
+      institución del par con el umbral versionado (80 → 85); la versión vieja
+      infla el conteo hasta 9,6 veces.
+
+  - id: c-003
+    clase: perilla_de_pep_apagada
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Cuántos clientes de riesgo alto tenemos?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: riesgo_alto}
+    exige_derivacion: true
+    debe_mencionar: [riesgo_alto]
+    detecta: >-
+      Que lea la perilla `pep_is_high_risk` de la institución en vez de aplicar
+      la de la otra. Acá está apagada: el escalón de PEP tiene que dar cero, y
+      un sistema que hardcodeó el tercer escalón acierta en andino y falla acá.
+
+  - id: c-004
+    clase: agregacion_con_desglose_obligatorio
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuál fue el monto total transado por los clientes de riesgo alto el último trimestre?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: monto_transado}
+    exige_valor: false        # un monto único violaría D-08; lo que se exige es el desglose
+    exige_derivacion: true
+    exige_desglose: true
+    debe_mencionar: [monto_transado]
+    detecta: >-
+      Que no entregue un total único: no hay tipos de cambio (D-08) y los
+      importes son todos positivos, así que sumar monedas inventa una cotización
+      y sumar entradas con salidas no netea nada, mezcla.
+
+  - id: c-005
+    clase: ciclo_de_vida_con_exclusiones
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos hallazgos reales tuvimos el último trimestre?"
+    estado_esperado: [RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: hallazgo_real}
+    exige_derivacion: true
+    debe_mencionar: [hallazgo_real]
+    detecta: >-
+      Que deje afuera los falsos positivos cerrados —el 34,8 % de las alertas,
+      contarlos infla 2,3 veces— y que declare los tres supuestos de D-12. El
+      estado tiene que ser el de supuesto: la palabra "hallazgo" no es neutral.
+
+  - id: c-006
+    clase: perilla_de_escalado_apagada
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Cuántos hallazgos reales tuvimos el último trimestre?"
+    estado_esperado: [RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: hallazgo_real}
+    exige_derivacion: true
+    debe_mencionar: [hallazgo_real]
+    detecta: >-
+      Que lea `escalated_counts_as_finding`, que acá está apagada. La perilla
+      cambia el número un 50 % en la otra institución: aplicarla al revés da un
+      número plausible y equivocado.
+
+  - id: c-007
+    clase: calculo_temporal_contra_config
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Qué alertas están fuera del SLA de revisión?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: alerta_fuera_de_sla}
+    exige_derivacion: true
+    debe_mencionar: [alerta_fuera_de_sla]
+    detecta: >-
+      Que sume las dos mitades disjuntas —las sin revisar ya vencidas y las
+      revisadas tarde— con el plazo de esta institución (24 h). Quedarse con la
+      primera mitad pierde 4.840 alertas.
+
+  - id: c-008
+    clase: mitad_vacia_de_la_definicion
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Qué alertas están fuera del SLA de revisión?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: alerta_fuera_de_sla}
+    exige_derivacion: true
+    debe_mencionar: [alerta_fuera_de_sla]
+    detecta: >-
+      Que la mitad de "revisadas tarde" dé cero sin que eso rompa la derivación:
+      con un plazo de 72 h no hay ninguna, y un escalón en cero es un resultado,
+      no un error del que haya que escaparse.
+
+  - id: c-009
+    clase: agregacion_con_denominador_parcial
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuál es el tiempo promedio de resolución de casos?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: resolucion_de_casos}
+    exige_derivacion: true
+    debe_mencionar: [resolucion_de_casos]
+    detecta: >-
+      Que promedie sólo los casos cerrados y que la antigüedad de los abiertos
+      salga igual: un promedio de 2,73 días sin decir que 1.065 casos llevan
+      tres meses abiertos es un número honesto usado para engañar.
+
+  - id: c-010
+    clase: inferencia_sin_columna
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Qué clientes son probablemente la misma persona?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: misma_persona}
+    exige_derivacion: true
+    debe_mencionar: [misma_persona]
+    detecta: >-
+      Que normalice el documento antes de agrupar —sin normalizar detecta 3,6
+      veces menos— y que declare que es una inferencia: "persona" no existe como
+      dato, y el conteo es de legajos que colapsan.
+
+  - id: c-011
+    clase: listado_ademas_del_conteo
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "Mostrame los legajos que están repetidos, con su documento."
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: misma_persona}
+    exige_derivacion: true
+    exige_filas: true
+    debe_mencionar: [misma_persona]
+    detecta: >-
+      Que una pregunta por el listado devuelva filas reales y no solamente el
+      número. Es la reconciliación contra lo conocido de D-07: sin filas, el
+      oficial no tiene con qué verificar nada.
+
+  - id: c-012
+    clase: concepto_vecino_que_no_es_hallazgo
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Cuántos casos reportamos a la UIF el último trimestre?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: caso_reportado}
+    exige_derivacion: true
+    debe_mencionar: [caso_reportado]
+    detecta: >-
+      Que use la skill de casos reportados y no la de hallazgos. Son dos
+      poblaciones que difieren por quince y que no se pueden cruzar: el vínculo
+      alerta↔caso no existe en la base (D-12).
+
+  - id: c-013
+    clase: sinonimo_del_dominio
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes riesgosos hay?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: riesgo_alto}
+    exige_derivacion: true
+    debe_mencionar: [riesgo_alto]
+    detecta: >-
+      Que "riesgoso" llegue a la misma definición que "riesgo alto" y dé el mismo
+      número. Si acá repregunta, es falsa ambigüedad: la palabra del oficial no
+      tiene por qué ser la del glosario.
+
+  - id: c-014
+    clase: reformulacion_sin_la_palabra_del_concepto
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántas altas de clientes hubo en lo que va del año?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: cliente_onboardeado}
+    exige_derivacion: true
+    debe_mencionar: [cliente_onboardeado]
+    detecta: >-
+      Que llegue a la skill sin que la pregunta use la palabra "onboardear", y
+      que "lo que va del año" se resuelva contra la fecha de corte y no contra
+      el reloj.
+
+  - id: c-015
+    clase: multiturno_con_historial
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Y cuántos reportamos a la UIF el último trimestre?"
+    historial:
+      - pregunta: "¿Cuántos clientes de riesgo alto tenemos?"
+        respuesta: "Tenemos {n} clientes de riesgo alto."
+        valor: {concepto: riesgo_alto}
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: caso_reportado}
+    exige_derivacion: true
+    debe_mencionar: [caso_reportado]
+    detecta: >-
+      Que el turno anterior aporte el sujeto elidido sin contaminar la respuesta:
+      la pregunta es por todos los casos reportados, no por los de los clientes
+      de riesgo alto del turno anterior.
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Ambiguas · el acierto es repreguntar o declarar el supuesto, no un número
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - id: a-001
+    clase: unidad_no_agregable
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cuánto transamos el último trimestre?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    detecta: >-
+      Que no invente un tipo de cambio para sumar ARS con USD. Es la ambigüedad
+      con la peor consecuencia del set: un total único es una cotización
+      inventada presentada como dato.
+
+  - id: a-002
+    clase: universo_indefinido
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes tenemos?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    valores_admisibles:
+      - {concepto: cliente_onboardeado, escalon: total}
+      - {concepto: cliente_onboardeado, escalon: activos}
+      - {concepto: cliente_onboardeado, escalon: aprobados}
+    detecta: >-
+      Que note que "clientes" son tres poblaciones distintas —todos, los vivos y
+      los aprobados— y que la diferencia entre la primera y la última es de
+      setenta mil legajos.
+
+  - id: a-003
+    clase: estado_indefinido
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cuántas alertas críticas hay abiertas?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    detecta: >-
+      Que "abiertas" se aclare o se declare: `OPEN` sola, o también `IN_REVIEW` y
+      `ESCALATED`, que siguen sin resolverse. Ninguno de los tres estados es
+      obviamente el que el oficial quiso decir.
+
+  - id: a-004
+    clase: metrica_indefinida
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cómo venimos este año?"
+    estado_esperado: [NECESITO_QUE_ACLARES]
+    detecta: >-
+      Que no elija una métrica cualquiera y la presente como *la* respuesta. Acá
+      no hay una lectura más razonable que otra, así que el supuesto no alcanza:
+      tiene que repreguntar.
+
+  - id: a-005
+    clase: umbral_de_confirmacion_indefinido
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cuántos PEPs tenemos?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    valores_admisibles:
+      - {concepto: pep_confirmado, escalon: pep_vigente}
+      - {concepto: pep_confirmado, escalon: pep_historico}
+    detecta: >-
+      La única definición que H2 dejó abierta a propósito, para que la decida el
+      eval (D-13): los que hoy figuran como PEP (660) contra los que alguna vez
+      dieron positivo (2.161). Cambia el número por 3,3.
+
+  - id: a-006
+    clase: periodo_relativo_indefinido
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cómo estuvo el último mes?"
+    estado_esperado: [NECESITO_QUE_ACLARES]
+    detecta: >-
+      Dos indefiniciones a la vez: qué métrica, y qué mes. "El último mes" no es
+      uno de los dos períodos que el sistema resuelve, y aproximarlo devuelve un
+      número plausible sobre otra ventana de tiempo.
+
+  - id: a-007
+    clase: legajo_versus_persona
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cuántas personas son clientes nuestros?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    valores_admisibles:
+      - {concepto: misma_persona, escalon: activos}
+      - {concepto: misma_persona, escalon: personas_distintas}
+    detecta: >-
+      Que "persona" no se conteste como si fuera "legajo". La persona no existe
+      como dato: se infiere por documento normalizado, y decirlo es parte de la
+      respuesta.
+
+  - id: a-008
+    clase: palabra_con_dos_poblaciones
+    categoria: ambigua
+    institucion: banco_andino
+    pregunta: "¿Cuántos casos reales detectamos el último trimestre?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    valores_admisibles:
+      - {concepto: hallazgo_real}
+      - {concepto: caso_reportado}
+    detecta: >-
+      Que la palabra "caso" tire para el lado de los casos y "real" para el de
+      los hallazgos, que son dos poblaciones que difieren por quince y no se
+      pueden cruzar. Elegir una sin decirlo es el peor resultado.
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Incontestables · el acierto es decir qué falta, y nunca un cero
+  # ─────────────────────────────────────────────────────────────────────────
+
+  - id: i-001
+    clase: columna_inexistente
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿A qué valor se le cambió el riesgo a los clientes que tuvieron un override?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      El señuelo mejor puesto de la base: `client_risk_overrides` tiene el nombre
+      exacto de lo que uno busca y registra que hubo un override, no a qué valor.
+      La tabla existe, la columna no.
+
+  - id: i-002
+    clase: vinculo_inexistente
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Qué alertas dieron origen a los casos que reportamos a la UIF?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      El vínculo alerta↔caso no existe: `alerts.case_id` está 100 % en NULL y
+      `alert_case_links.alert_id` es una copia de `case_id`. Una tabla puente que
+      "funciona" y devuelve filas es peor que una que no está.
+
+  - id: i-003
+    clase: lista_ausente_en_la_data
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes aparecen en listas de sanciones internacionales como OFAC?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      El catálogo de listas tiene quince y en los datos aparece una sola, de PEPs
+      argentinos. Contestar "cero sanciones" con un catálogo poblado es el error:
+      no hay data, no hay ausencia de riesgo.
+
+  - id: i-004
+    clase: falta_data_de_conversion
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cuál es el total transado en dólares el último trimestre?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      No hay tabla de tipos de cambio. Se diferencia de a-001 en que acá el
+      oficial ya eligió la unidad: no hay supuesto que declarar ni repregunta que
+      hacer, falta el dato.
+
+  - id: i-005
+    clase: dato_de_contexto_inexistente
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Por qué se rechazó a los clientes que quedaron en estado rechazado?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      El estado del onboarding está; el motivo no existe como columna. Es la
+      pregunta que más invita a inventar una explicación verosímil a partir de
+      otros campos.
+
+  - id: i-006
+    clase: fuera_del_snapshot
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes onboardeamos en julio de 2026?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      Julio de 2026 es posterior a la fecha de corte. La respuesta correcta no es
+      cero: es que no hay datos de ese período, y un cero se lee como "no
+      onboardeamos a nadie".
+
+  - id: i-007
+    clase: anterior_al_horizonte_de_la_tabla
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos casos abrimos en 2024?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      La tabla de casos arranca en agosto de 2025, y cada tabla arranca en una
+      fecha distinta. Mismo error que i-006 por el otro extremo, y más difícil:
+      acá la consulta corre y devuelve cero.
+
+  - id: i-008
+    clase: fuera_del_tenant_comparacion
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cómo nos comparamos con Banco Sur?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      La más importante del set: es el peor bug posible del sistema expresado
+      como pregunta. Comparar necesita datos que para este oficial no existen, y
+      la respuesta es negarse. Un cero sería peor todavía.
+
+  - id: i-009
+    clase: fuera_del_tenant_nombrado
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos clientes de riesgo alto tiene Fintech Cuyo?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      Nombrar la otra institución no la vuelve consultable. El aislamiento lo
+      garantiza el RLS, así que una fuga de datos es imposible; lo que se mide
+      acá es que el sistema lo diga en vez de contestar con el número propio como
+      si fuera el pedido.
+
+  - id: i-010
+    clase: prediccion_y_no_consulta
+    categoria: incontestable
+    institucion: banco_andino
+    pregunta: "¿Cuántas alertas vamos a tener el mes que viene?"
+    estado_esperado: [NO_SE_PUEDE_RESPONDER]
+    detecta: >-
+      No es una consulta: es un pronóstico. El sistema lee lo que pasó, y una
+      proyección presentada con la misma cara que un conteo es indistinguible de
+      un dato para el que la lee.

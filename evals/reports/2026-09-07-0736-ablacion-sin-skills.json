@@ -1,0 +1,106 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 3,
+    "llamadas": 3,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 3,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 1,
+    "latencia_ms": {
+      "p50": 21592.8,
+      "p95": 21592.8
+    },
+    "tokens": {
+      "prompt": 35099,
+      "respuesta": 6059
+    },
+    "usd": 0.36,
+    "fallas": {
+      "skill_no_consultada": 3
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-002",
+      "clase": "umbral_versionado_por_institucion",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Tenemos 10.590 clientes de riesgo alto. Lo conté sobre clientes activos no borrados, considerando como alto riesgo a quienes tienen score vigente igual o mayor a 85, marca manual de alto riesgo u override activo.",
+      "motivos": [
+        "valor 10590, esperaba 7859",
+        "la derivación no trae los escalones total, activos, con_evaluacion, por_score, por_marca, por_pep, riesgo_alto",
+        "no declaró las definiciones riesgo_alto"
+      ],
+      "falla": "skill_no_consultada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 31354.7,
+      "pasos": 4,
+      "tokens_prompt": 14862,
+      "tokens_respuesta": 2714,
+      "rechazos_del_gate": 1,
+      "timeouts": 0,
+      "traza_id": "tz_7b9b1953-d0d4-46e8-96cd-29410130b16e"
+    },
+    {
+      "id": "c-003",
+      "clase": "perilla_de_pep_apagada",
+      "categoria": "contestable",
+      "institucion": "fintech_cuyo",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Tenemos 321 clientes de riesgo alto. Tomé como riesgo alto a los clientes activos que tienen score actual igual o mayor a 68 o una marca manual de alto riesgo.",
+      "motivos": [
+        "la derivación no trae los escalones total, activos, con_evaluacion, por_score, por_marca, por_pep, riesgo_alto",
+        "no declaró las definiciones riesgo_alto"
+      ],
+      "falla": "skill_no_consultada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 21592.8,
+      "pasos": 3,
+      "tokens_prompt": 10267,
+      "tokens_respuesta": 1745,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_cf0968ea-887d-4452-8ba1-e4e7179bdc98"
+    },
+    {
+      "id": "c-013",
+      "clase": "sinonimo_del_dominio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Hay 7.221 clientes riesgosos vigentes al 1/6/2026. Tomé como riesgosos a los clientes activos que tienen score actual igual o superior al umbral configurado o una marca manual de alto riesgo.",
+      "motivos": [
+        "valor 7221, esperaba 7859",
+        "la derivación no trae los escalones total, activos, con_evaluacion, por_score, por_marca, por_pep, riesgo_alto",
+        "no declaró las definiciones riesgo_alto"
+      ],
+      "falla": "skill_no_consultada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 20286.6,
+      "pasos": 3,
+      "tokens_prompt": 9970,
+      "tokens_respuesta": 1600,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_0545d6ba-6642-48fc-bd5f-2f15fc63de69"
+    }
+  ]
+}

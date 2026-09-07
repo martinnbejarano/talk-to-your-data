@@ -1,0 +1,93 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 3,
+    "llamadas": 3,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 3,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 18218.0,
+      "p95": 18218.0
+    },
+    "tokens": {
+      "prompt": 38332,
+      "respuesta": 4839
+    },
+    "usd": 0.34,
+    "fallas": {}
+  },
+  "resultados": [
+    {
+      "id": "c-002",
+      "clase": "umbral_versionado_por_institucion",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Tenemos 7.859 clientes de riesgo alto. El conteo toma clientes activos con evaluación de riesgo vigente y suma los que superan el umbral, los marcados manualmente y los PEP vigentes según la configuración de la institución.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 18204.4,
+      "pasos": 3,
+      "tokens_prompt": 12751,
+      "tokens_respuesta": 1559,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_56ac2baf-59ae-4865-9d6d-6784aef1986e"
+    },
+    {
+      "id": "c-003",
+      "clase": "perilla_de_pep_apagada",
+      "categoria": "contestable",
+      "institucion": "fintech_cuyo",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Tenemos 321 clientes de riesgo alto. El conteo toma clientes activos con evaluación de riesgo vigente y aplica el umbral vigente de la institución, más la marca manual; PEP no suma porque la configuración vigente no lo cuenta como riesgo alto.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 18218.0,
+      "pasos": 3,
+      "tokens_prompt": 12787,
+      "tokens_respuesta": 1610,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_9c92cf61-00a3-4a0e-8d20-2da21b98d497"
+    },
+    {
+      "id": "c-013",
+      "clase": "sinonimo_del_dominio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Hay 7.859 clientes de riesgo alto en la institución. El conteo usa la evaluación de riesgo vigente, la marca manual de riesgo alto y, cuando aplica, el PEP vigente.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 18966.4,
+      "pasos": 3,
+      "tokens_prompt": 12794,
+      "tokens_respuesta": 1670,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_1ec3f650-fab9-40bd-b30b-5134eaddc464"
+    }
+  ]
+}

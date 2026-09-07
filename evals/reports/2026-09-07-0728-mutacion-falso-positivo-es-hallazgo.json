@@ -1,0 +1,105 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 3,
+    "llamadas": 3,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 2,
+        "pass_1": 0.5,
+        "pass_n": 0.5
+      },
+      "ambigua": {
+        "preguntas": 1,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 14765.9,
+      "p95": 14765.9
+    },
+    "tokens": {
+      "prompt": 36272,
+      "respuesta": 3562
+    },
+    "usd": 0.29,
+    "fallas": {
+      "definicion_equivocada": 1,
+      "ambiguedad_no_detectada": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-005",
+      "clase": "ciclo_de_vida_con_exclusiones",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": false,
+      "respuesta": "En el último trimestre tuvimos 11704 hallazgos reales. El conteo corresponde a alertas del período que cerraron como verdadero positivo, más las escaladas porque la configuración vigente de la institución indica que también cuentan.",
+      "motivos": [
+        "estado `RESPONDIDA`, esperaba RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 12417.3,
+      "pasos": 3,
+      "tokens_prompt": 12095,
+      "tokens_respuesta": 971,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_23467a35-ed5f-4632-a720-1ff337d75656"
+    },
+    {
+      "id": "c-006",
+      "clase": "perilla_de_escalado_apagada",
+      "categoria": "contestable",
+      "institucion": "fintech_cuyo",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "En el último trimestre tuvimos 159 hallazgos reales. Son alertas disparadas en el período que cerraron como verdadero positivo; en esta institución las escaladas no suman como hallazgo real.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 17196.5,
+      "pasos": 3,
+      "tokens_prompt": 12088,
+      "tokens_respuesta": 1362,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_6d1ef05c-8a04-4939-a304-c8cb367695e8"
+    },
+    {
+      "id": "a-008",
+      "clase": "palabra_con_dos_poblaciones",
+      "categoria": "ambigua",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "El último trimestre detectamos 11704 hallazgos reales. Esto cuenta alertas, no casos reportados a la UIF.",
+      "motivos": [
+        "eligió 11704, que no es ninguna de las lecturas (5404, 355)"
+      ],
+      "falla": "ambiguedad_no_detectada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 14765.9,
+      "pasos": 3,
+      "tokens_prompt": 12089,
+      "tokens_respuesta": 1229,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_3b7a234e-fa29-4d5f-a191-12d83e39afdc"
+    }
+  ]
+}
