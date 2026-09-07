@@ -6,13 +6,13 @@ export function Exclusiones({ exclusiones }) {
   if (!exclusiones || exclusiones.length === 0) return null;
 
   return (
-    <div className="afuera">
-      <h3>Qué no está contado acá adentro</h3>
+    <section className="seccion afuera">
+      <h3>Qué quedó afuera</h3>
       <ul>
         {exclusiones.map((exclusion, i) => (
           <li key={i}>{exclusion}</li>
         ))}
       </ul>
-    </div>
+    </section>
   );
 }

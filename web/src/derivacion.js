@@ -109,6 +109,10 @@ function buscarLaFaseDeSuma(escalones, tramo) {
 }
 
 function armarEscalones(escalones, tramo, desde, hasta, ultimo, suma) {
+  // El tope se mide sobre el tramo entero y no sobre este bloque: la fase de
+  // suma parte la cascada en dos bloques, y una escala por bloque haría que el
+  // resultado y el universo dibujaran la misma barra.
+  const tope = topeDelTramo(escalones, tramo);
   const filas = [];
   for (let i = desde; i <= hasta; i += 1) {
     const escalon = escalones[i];
@@ -127,7 +131,18 @@ function armarEscalones(escalones, tramo, desde, hasta, ultimo, suma) {
       delta: calcularDelta(escalones, i, tramo, ultimo, enLaSuma, suma),
     });
   }
-  return { tipo: "escalones", unidad: tramo.unidad, filas };
+  return { tipo: "escalones", unidad: tramo.unidad, tope, filas };
+}
+
+/** Cero cuando ningún escalón del tramo trae número: ahí no hay proporción que
+ * dibujar y la escala no se muestra. */
+function topeDelTramo(escalones, tramo) {
+  let tope = 0;
+  for (let i = tramo.desde; i <= tramo.hasta; i += 1) {
+    const n = escalones[i].n;
+    if (typeof n === "number") tope = Math.max(tope, Math.abs(n));
+  }
+  return tope;
 }
 
 /** Cuántos quedaron afuera, o `null` si la resta no aplica: sólo contra el

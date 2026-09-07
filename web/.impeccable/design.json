@@ -1,0 +1,257 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-06T00:00:00Z",
+  "title": "Design System: Compliance conversacional",
+  "extensions": {
+    "colorMeta": {
+      "acento": {
+        "role": "primary",
+        "displayName": "Indigo Signal",
+        "canonical": "#3651c9",
+        "tonalRamp": ["#0d1330", "#151f4d", "#1e2c6e", "#2a3d95", "#3651c9", "#6a7fdd", "#a3b1ec", "#dfe4fa"]
+      },
+      "acento-hover": {
+        "role": "primary",
+        "displayName": "Indigo Pressed",
+        "canonical": "#2b41a6",
+        "tonalRamp": ["#0a0f27", "#111740", "#18215c", "#22317f", "#2b41a6", "#5c72cd", "#9aa8e6", "#dde1f7"]
+      },
+      "acento-suave": {
+        "role": "primary",
+        "displayName": "Indigo Wash",
+        "canonical": "#eef1fd",
+        "tonalRamp": ["#171b2c", "#232941", "#333c5c", "#4a5680", "#6c79a8", "#98a3cd", "#c6cdea", "#eef1fd"]
+      },
+      "supuesto-tinta": {
+        "role": "secondary",
+        "displayName": "Declared-Assumption Amber",
+        "canonical": "#7a5510",
+        "tonalRamp": ["#231803", "#3a2707", "#52380b", "#67460e", "#7a5510", "#a87a2a", "#d6ae66", "#fcf6e9"]
+      },
+      "hueco-tinta": {
+        "role": "secondary",
+        "displayName": "Unanswerable Slate",
+        "canonical": "#3e4658",
+        "tonalRamp": ["#14171f", "#1f2530", "#2c3342", "#3e4658", "#5b657c", "#8a93a6", "#bcc2ce", "#f1f2f6"]
+      },
+      "falla-tinta": {
+        "role": "tertiary",
+        "displayName": "Program-Failure Red",
+        "canonical": "#8c2f26",
+        "tonalRamp": ["#2a0d0a", "#411310", "#5b1c16", "#74241d", "#8c2f26", "#b85a50", "#dc9c95", "#fcf1ef"]
+      },
+      "papel": {
+        "role": "neutral",
+        "displayName": "Paper",
+        "canonical": "#fbfbfa",
+        "tonalRamp": ["#1b1c1e", "#2e2f31", "#4a4c4e", "#6e7379", "#9a9d9f", "#c4c5c2", "#e7e7e4", "#fbfbfa"]
+      },
+      "blanco": {
+        "role": "neutral",
+        "displayName": "Surface White",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#1b1c1e", "#333436", "#4f5153", "#74767a", "#9fa1a4", "#c9cacc", "#e9eaeb", "#ffffff"]
+      },
+      "burbuja": {
+        "role": "neutral",
+        "displayName": "Grey Strip",
+        "canonical": "#f2f2f0",
+        "tonalRamp": ["#1c1c1a", "#2f2f2c", "#4a4a46", "#6e6e69", "#9b9b95", "#c3c3bd", "#e2e2df", "#f2f2f0"]
+      },
+      "tinta": {
+        "role": "neutral",
+        "displayName": "Ink",
+        "canonical": "#1b1c1e",
+        "tonalRamp": ["#0c0d0e", "#1b1c1e", "#333538", "#4d5054", "#6e7379", "#9a9ea3", "#c9cbcd", "#eff0f1"]
+      },
+      "tinta-2": {
+        "role": "neutral",
+        "displayName": "Ink Secondary",
+        "canonical": "#55585c",
+        "tonalRamp": ["#111214", "#222426", "#3a3c40", "#55585c", "#7c8085", "#a6a9ad", "#cdcfd2", "#f0f1f2"]
+      },
+      "tinta-3": {
+        "role": "neutral",
+        "displayName": "Ink Tertiary",
+        "canonical": "#6e7379",
+        "tonalRamp": ["#16181a", "#282b2e", "#414549", "#585d62", "#6e7379", "#9a9ea3", "#c5c8cb", "#eeeff0"]
+      },
+      "linea": {
+        "role": "neutral",
+        "displayName": "Hairline",
+        "canonical": "#e7e7e4",
+        "tonalRamp": ["#1b1b19", "#2e2e2b", "#484845", "#6c6c68", "#96968f", "#bfbfb9", "#e7e7e4", "#f7f7f5"]
+      },
+      "linea-fuerte": {
+        "role": "neutral",
+        "displayName": "Hairline Strong",
+        "canonical": "#d6d7d2",
+        "tonalRamp": ["#1a1b19", "#2c2d2a", "#454744", "#676964", "#91938d", "#b6b8b2", "#d6d7d2", "#f0f0ed"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "The empty state's single headline. Appears once per session and nowhere else." },
+      "headline": { "displayName": "Answer Sentence", "purpose": "The one-sentence answer. The largest element in an answered turn, by rule." },
+      "title": { "displayName": "Section Title", "purpose": "Headings inside the disclosure panel. Deliberately smaller than the body they introduce: wayfinding, not content." },
+      "body": { "displayName": "Body", "purpose": "Composer, asked question, options, empty-state paragraph. Carries Inter's cv05 so 'l' cannot be misread as '1'." },
+      "secondary": { "displayName": "Supporting", "purpose": "Notice blocks, ledger steps, definitions, exclusions." },
+      "label": { "displayName": "Label", "purpose": "Deltas, glosses, unit captions, composer footnote, trace line." },
+      "mono": { "displayName": "Mono", "purpose": "Trace ids and raw error strings only." }
+    },
+    "shadows": [
+      {
+        "name": "composer-lift",
+        "value": "0 1px 2px rgba(27, 28, 30, 0.04), 0 8px 24px -12px rgba(27, 28, 30, 0.14)",
+        "purpose": "The resting composer, and the only elevation in the system. A tight contact shadow plus a wide negative-spread ambient."
+      },
+      {
+        "name": "composer-focus",
+        "value": "0 0 0 3px var(--acento-suave), 0 8px 24px -12px rgba(27, 28, 30, 0.16)",
+        "purpose": "Composer focus-within. The ring is the accent wash, paired with the border shifting to accent."
+      },
+      {
+        "name": "scroll-edge",
+        "value": "radial-gradient(farthest-side at 0 50%, rgba(27, 28, 30, 0.12), transparent)",
+        "purpose": "Horizontal-overflow cue on the rows table, layered with white fade gradients and background-attachment local/scroll so it appears only when actually scrolled. Not elevation."
+      }
+    ],
+    "motion": [
+      { "name": "curva", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "The system easing. Used by the turn entrance, the disclosure open, and the caret rotation." },
+      { "name": "estado", "value": "120ms ease", "purpose": "Default state transitions on buttons, options and the institution select." },
+      { "name": "composer", "value": "140ms ease", "purpose": "Composer border and shadow on focus." },
+      { "name": "caret", "value": "240ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Disclosure caret rotating 180deg on aria-expanded." },
+      { "name": "entrar", "value": "280ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "New turn entrance: opacity 0 and translateY(4px) to rest." },
+      { "name": "gaveta", "value": "300ms cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Disclosure height, animated as grid-template-rows 0fr to 1fr so the real height animates without measuring in JS." },
+      { "name": "latir", "value": "1.4s ease-in-out infinite", "purpose": "The thinking dot pulsing between 0.25 opacity at 0.8 scale and full." }
+    ],
+    "breakpoints": [
+      { "name": "angosto", "value": "640px" },
+      { "name": "coarse-pointer", "value": "(pointer: coarse)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Composer",
+      "kind": "input",
+      "refersTo": "composer",
+      "description": "The sticky question box. The one lifted object on the page; auto-grows to its content up to 40vh.",
+      "html": "<div class=\"ds-composer\"><textarea class=\"ds-composer-input\" rows=\"1\" placeholder=\"Preguntá en castellano…\"></textarea><button class=\"ds-send\" aria-label=\"Preguntar\"><svg width=\"17\" height=\"17\" viewBox=\"0 0 17 17\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M8.5 13.5v-10\"/><path d=\"M4 8l4.5-4.5L13 8\"/></svg></button></div>",
+      "css": ".ds-composer { display: flex; align-items: flex-end; gap: 8px; background: #ffffff; border: 1px solid #d6d7d2; border-radius: 14px; padding: 8px 8px 8px 14px; box-shadow: 0 1px 2px rgba(27,28,30,0.04), 0 8px 24px -12px rgba(27,28,30,0.14); transition: border-color 140ms ease, box-shadow 140ms ease; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; } .ds-composer:focus-within { border-color: #3651c9; box-shadow: 0 0 0 3px #eef1fd, 0 8px 24px -12px rgba(27,28,30,0.16); } .ds-composer-input { flex: 1; min-width: 0; max-height: 40vh; resize: none; border: none; outline: none; background: none; font: inherit; font-size: 15px; line-height: 1.5; color: #1b1c1e; caret-color: #3651c9; padding: 7px 0; } .ds-composer-input::placeholder { color: #6e7379; } .ds-send { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border: none; border-radius: 9px; background: #3651c9; color: #ffffff; cursor: pointer; transition: background 120ms ease; } .ds-send:hover:not(:disabled) { background: #2b41a6; } .ds-send:focus-visible { outline: 2px solid #3651c9; outline-offset: 2px; } .ds-send:disabled { background: #d6d7d2; color: #6e7379; cursor: default; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "The disclosure toggle, and the only button variant besides send. Fills grey and rotates its caret when expanded.",
+      "html": "<button class=\"ds-btn-quiet\" aria-expanded=\"true\">Mostrar más<svg class=\"ds-caret\" width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 6.5 8 10.5l4-4\"/></svg></button>",
+      "css": ".ds-btn-quiet { display: inline-flex; align-items: center; gap: 7px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 13.5px; font-weight: 500; color: #55585c; background: #ffffff; border: 1px solid #d6d7d2; border-radius: 7px; padding: 6px 12px; cursor: pointer; transition: color 120ms ease, border-color 120ms ease, background 120ms ease; } .ds-btn-quiet:hover { color: #1b1c1e; border-color: #6e7379; } .ds-btn-quiet:focus-visible { outline: 2px solid #3651c9; outline-offset: 2px; border-radius: 7px; } .ds-btn-quiet[aria-expanded=\"true\"] { color: #1b1c1e; background: #f2f2f0; border-color: #d6d7d2; } .ds-caret { color: #6e7379; transition: transform 240ms cubic-bezier(0.16, 1, 0.3, 1); } .ds-btn-quiet[aria-expanded=\"true\"] .ds-caret { transform: rotate(180deg); } @media (pointer: coarse) { .ds-btn-quiet { min-height: 44px; padding-inline: 16px; } }"
+    },
+    {
+      "name": "Clarification Option",
+      "kind": "button",
+      "refersTo": "option",
+      "description": "A full-width answer row shown when the system asks back. Never placed behind a disclosure: the options are the answer.",
+      "html": "<button class=\"ds-option\"><span>Clientes con score por encima del umbral</span><span class=\"ds-option-n\">5.399</span></button>",
+      "css": ".ds-option { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; width: 100%; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.55; text-align: left; color: #1b1c1e; background: #ffffff; border: 1px solid #d6d7d2; border-radius: 8px; padding: 11px 14px; cursor: pointer; transition: border-color 120ms ease, background 120ms ease; } .ds-option:hover:not(:disabled) { border-color: #3651c9; background: #eef1fd; } .ds-option:focus-visible { outline: 2px solid #3651c9; outline-offset: 2px; } .ds-option:disabled { cursor: default; opacity: 0.55; } .ds-option-n { font-variant-numeric: tabular-nums; font-weight: 600; color: #55585c; white-space: nowrap; } @media (pointer: coarse) { .ds-option { min-height: 44px; } }"
+    },
+    {
+      "name": "Suggestion Chip",
+      "kind": "chip",
+      "refersTo": "suggestion-chip",
+      "description": "The empty state's single suggested question. Pill-shaped, and it teaches the option affordance before the user meets a real one.",
+      "html": "<button class=\"ds-chip\">¿Cuántos clientes de riesgo alto tenemos?</button>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; width: auto; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.55; text-align: left; color: #55585c; background: #ffffff; border: 1px solid #d6d7d2; border-radius: 999px; padding: 8px 16px; cursor: pointer; transition: border-color 120ms ease, background 120ms ease, color 120ms ease; } .ds-chip:hover:not(:disabled) { border-color: #3651c9; background: #eef1fd; color: #1b1c1e; } .ds-chip:focus-visible { outline: 2px solid #3651c9; outline-offset: 2px; } .ds-chip:disabled { cursor: default; opacity: 0.55; }"
+    },
+    {
+      "name": "Asked-Question Bubble",
+      "kind": "card",
+      "refersTo": "question-bubble",
+      "description": "The officer's question, right-aligned at 85% max width. No avatar and no name label: the asymmetry alone says who spoke.",
+      "html": "<div class=\"ds-said\"><p>¿Cuántos clientes de riesgo alto tenemos?</p></div>",
+      "css": ".ds-said { display: flex; justify-content: flex-end; } .ds-said p { max-width: 85%; margin: 0; background: #f2f2f0; border-radius: 16px; padding: 9px 15px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 15px; line-height: 1.55; color: #1b1c1e; text-wrap: pretty; }"
+    },
+    {
+      "name": "Unanswerable Notice",
+      "kind": "custom",
+      "refersTo": "notice-gap",
+      "description": "The 'there is no number here, and it is not zero' block. Slate, not red, and its icon is a dashed circle with a minus: an absence drawn as an absence.",
+      "html": "<div class=\"ds-notice ds-notice-gap\"><span class=\"ds-notice-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.25\" stroke-dasharray=\"2.6 2.2\"/><path d=\"M5.6 8h4.8\"/></svg></span><p><b>Acá no hay número, y no es cero.</b> Cero querría decir que la respuesta es ninguno, y eso sería una respuesta. Cualquier cifra que te diera sería inventada.</p></div>",
+      "css": ".ds-notice { display: flex; gap: 9px; padding: 11px 14px; border-radius: 8px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; } .ds-notice p { margin: 0; } .ds-notice b { font-weight: 600; } .ds-notice-icon { flex: none; margin-top: 1px; display: flex; } .ds-notice-gap { background: #f1f2f6; border: 1px solid #dcdfe8; color: #3e4658; }"
+    },
+    {
+      "name": "Declared-Assumption Notice",
+      "kind": "custom",
+      "refersTo": "notice-assumption",
+      "description": "Amber block stating the reading the system chose when the question admitted more than one. Never behind a disclosure: it is a condition of the sentence above it.",
+      "html": "<div class=\"ds-notice ds-notice-assumption\"><span class=\"ds-notice-icon\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"6.25\"/><path d=\"M8 7.5v3.25\"/><path d=\"M8 5.1v.6\"/></svg></span><div><p><b>Eligió por vos.</b> La pregunta admitía más de una lectura y se tomó ésta:</p><p>Se contaron clientes vivos, no legajos históricos.</p></div></div>",
+      "css": ".ds-notice { display: flex; gap: 9px; padding: 11px 14px; border-radius: 8px; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; } .ds-notice p { margin: 0; } .ds-notice p + p { margin-top: 6px; } .ds-notice b { font-weight: 600; } .ds-notice-icon { flex: none; margin-top: 1px; display: flex; } .ds-notice-assumption { background: #fcf6e9; border: 1px solid #ecdfc2; color: #7a5510; }"
+    },
+    {
+      "name": "Derivation Ledger Row",
+      "kind": "custom",
+      "refersTo": "provenance-strip",
+      "description": "The signature component. Label left, tabular figure right, optional delta, and a 2px proportional accent bar painted over the row's own bottom rule. The last row is the accounting total.",
+      "html": "<div class=\"ds-ledger\"><div class=\"ds-step\"><span class=\"ds-step-txt\">Clientes de la institución</span><span class=\"ds-step-num\">180.000</span><span class=\"ds-scale\" aria-hidden=\"true\"><span style=\"width:100%\"></span></span></div><div class=\"ds-step ds-step-indent\"><span class=\"ds-step-txt\">activos (no dados de baja)</span><span class=\"ds-step-num\">174.669</span><span class=\"ds-step-delta\">−5.331</span><span class=\"ds-scale\" aria-hidden=\"true\"><span style=\"width:97%\"></span></span></div><div class=\"ds-step ds-step-total\"><span class=\"ds-step-txt\">clientes de riesgo alto</span><span class=\"ds-step-num\">7.859</span><span class=\"ds-scale\" aria-hidden=\"true\"><span style=\"width:4.4%\"></span></span></div></div>",
+      "css": ".ds-ledger { display: flex; flex-direction: column; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; } .ds-step { position: relative; display: grid; grid-template-columns: 1fr auto; align-items: baseline; gap: 4px 14px; padding: 7px 0; border-bottom: 1px solid #e7e7e4; } .ds-step-txt { color: #55585c; font-size: 14px; } .ds-step-num { font-variant-numeric: tabular-nums; font-weight: 500; color: #1b1c1e; font-size: 14px; text-align: right; } .ds-step-delta { grid-column: 2; font-size: 12px; color: #6e7379; font-variant-numeric: tabular-nums; text-align: right; } .ds-step-indent .ds-step-txt { padding-left: 14px; } .ds-scale { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; } .ds-scale > span { display: block; height: 100%; background: #3651c9; opacity: 0.72; } .ds-step-total { border-top: 2px solid #1b1c1e; border-bottom: 1px solid #e7e7e4; margin-top: 2px; padding-top: 10px; } .ds-step-total .ds-step-txt { color: #1b1c1e; font-weight: 500; } .ds-step-total .ds-step-num { font-weight: 600; font-size: 16px; } .ds-step-total .ds-scale > span { opacity: 1; }"
+    },
+    {
+      "name": "Institution Bar",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "The sticky context bar. Carries no navigation, only state: which institution, and to what data cut date. Visible in every answer state.",
+      "html": "<header class=\"ds-bar\"><div class=\"ds-bar-inner\"><span class=\"ds-select-wrap\"><select class=\"ds-select\"><option>Banco Andino</option><option>Fintech Cuyo</option></select><span class=\"ds-chevron\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\" aria-hidden=\"true\"><path d=\"M4 6.5 8 10.5l4-4\"/></svg></span></span><span class=\"ds-cut\">Datos al <b>1 de junio de 2026</b></span></div></header>",
+      "css": ".ds-bar { background: #fbfbfa; border-bottom: 1px solid #e7e7e4; font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; } .ds-bar-inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding-block: 8px; } .ds-select-wrap { position: relative; display: inline-flex; align-items: center; } .ds-select { appearance: none; font: inherit; font-size: 15px; font-weight: 600; color: #1b1c1e; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 5px 30px 5px 9px; margin-left: -9px; cursor: pointer; transition: background 120ms ease, border-color 120ms ease; } .ds-select:hover:not(:disabled) { background: #ffffff; border-color: #d6d7d2; } .ds-select:focus-visible { outline: 2px solid #3651c9; outline-offset: 2px; } .ds-chevron { position: absolute; right: 10px; pointer-events: none; color: #6e7379; display: flex; } .ds-cut { font-size: 13px; color: #55585c; text-align: right; } .ds-cut b { font-weight: 500; color: #1b1c1e; white-space: nowrap; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Ledger Behind the Sentence",
+    "overview": "The surface is a conventional AI-chat column executed at full fidelity, and that convention is a decision, not a default. The direction round's standing exit was taken deliberately: a compliance officer running a long working day should spend zero attention learning where things are, so the shell borrows the shape they already know from ChatGPT — sticky context bar, one centred column, sticky composer at the bottom — and spends its entire craft budget on the one thing no chat product has: the ledger that opens underneath the answer when the officer has to defend the number. ChatGPT and Linear are the named craft bar; this is not a lower-ambition world, it is ambition pointed at the second screenful instead of the first.\n\nThe ground is paper white (#fbfbfa) with white only where something is interactive or liftable. Structure is carried by hairline rules, never by cards: the answer, the derivation ledger, the rows table and the trace line stack in one 46rem measure separated by 1px lines, so a screen full of numbers reads like a printed working paper rather than a dashboard. Type is Inter throughout with tabular numerals on every figure, so digits line up column-wise and a changing counter never reflows the sentence around it. One indigo accent (#3651c9) does all the pointing — send, focus, the proportional bar in the ledger — and nothing else is coloured for decoration.\n\nThe world it replaced is the confirmed anti-reference: a denser two-column panel that put derivation, definitions, exclusions and rows in front of the officer simultaneously. Everything that panel showed still exists here; it is one disclosure deep, in audit order — what was counted first, the arithmetic second — because the criterion decides whether a number is right and the arithmetic only matters once the criterion has convinced.",
+    "keyCharacteristics": [
+      "Light mode only, by the user's binding pin: no dark branch, no prefers-color-scheme colour block anywhere in the stylesheet.",
+      "One centred 46rem column, no sidebar, ever.",
+      "Flat by default: the composer's lift is the only shadow in the system.",
+      "Hairline rules (#e7e7e4) as the sole structural device; no cards, no fills for grouping except the two burbuja-grey information strips.",
+      "Tabular numerals everywhere a figure appears, including the \"thinking\" seconds counter.",
+      "Three semantic notice colours — amber assumption, slate gap, red failure — kept strictly distinct in meaning."
+    ],
+    "rules": [
+      { "name": "The One Accent Rule", "body": "Indigo marks action, focus, and proportion. If a new element is not a control, a focus state, or a quantity being drawn to scale, it does not get the accent.", "section": "colors" },
+      { "name": "The Red-Is-For-Breakage Rule", "body": "Red means the program failed. A question that cannot be answered from the data is slate; a question answered under a declared assumption is amber. Recolouring either of them red would tell a compliance officer that rigour is an error.", "section": "colors" },
+      { "name": "The White-Means-Touchable Rule", "body": "Paper is the ground; white is what you can act on. Do not introduce white cards for grouping — grouping is a hairline's job.", "section": "colors" },
+      { "name": "The Inter Rule", "body": "Inter is a deliberate commitment, not a default, and it is a knowing override of the \"overused font\" finding. The world's chosen canon is the modern product-UI standard, Linear ships Inter, and a distinctive face here would buy character at the cost of the digit legibility this screen exists to protect. Do not swap it for a \"more original\" grotesque.", "section": "typography" },
+      { "name": "The Tabular Numeral Rule", "body": "Every rendered figure carries font-variant-numeric: tabular-nums — the answer sentence, ledger figures and deltas, option counts, table cells, provenance values, the seconds counter. Numbers in this product get compared column-wise and re-read; proportional digits would let a value shift under the eye between two readings of the same screen.", "section": "typography" },
+      { "name": "The Sentence-Outranks-The-Heading Rule", "body": "No heading in an answered turn may be set larger or heavier than the answer sentence. If a new section needs more presence, give it space, not size.", "section": "typography" },
+      { "name": "The One-Measure Rule", "body": "Everything — bar, thread, composer, tables — lives inside the same 46rem column wrapper. New surfaces get the same wrapper; nothing goes full-bleed and nothing gets its own width.", "section": "layout" },
+      { "name": "The Coarse-Pointer Floor Rule", "body": "Any new pressable control must be added to the @media (pointer: coarse) block with a 44px minimum. Desktop density is bought by that rule existing; a control that skips it ships a target too small to hit.", "section": "layout" },
+      { "name": "The One Shadow Rule", "body": "The composer's lift is the system's only elevation. New surfaces — notices, options, tables, disclosure panels — are flat and are separated by hairlines. If something needs to feel raised, ask instead whether it needs to be white on paper.", "section": "elevation" },
+      { "name": "The Radius-Follows-Size Rule", "body": "A control's radius tracks its height, not its importance. A new 34px control takes ~9px; a new 14px inline chip takes 4px. Do not introduce a new radius tier for emphasis.", "section": "shapes" },
+      { "name": "The No-Track Rule", "body": "The scale bar has no track of its own. It is absolutely positioned at bottom: -1px and paints over the row's existing border-bottom, which is already there. A separate track was tried; it put two rules on every row and the ledger read as ruled paper. If you restyle these rows, the bar's bottom: -1px and the row's border-bottom are one unit — change either and you get the striped result back.", "section": "components" },
+      { "name": "The Per-Run Scale Rule", "body": "The bar's maximum is computed per tramo — per run of steps that count the same unit — by topeDelTramo in derivacion.js, and never per rendered block. The sum phase splits one run into two rendered blocks; scaling per block would give the result row and the universe row identical full-length bars. The scale also never crosses a unit change, because a bar comparing alerts against clients draws a proportion that means nothing, and the UI says so in prose when more than one run is present.", "section": "components" },
+      { "name": "The 0.4% Floor Rule", "body": "A nonzero value is drawn at max(|n| / tope, 0.004) — never smaller than 0.4% of the row. Without the floor, 660 against 180.000 renders as nothing and the eye reads \"none\" where there are 660. Zero is exempt and draws nothing: the floor exists for the small, not for the absent.", "section": "components" }
+    ],
+    "dos": [
+      "Do keep one centred 46rem column and light mode only. Both are the user's binding pins: no sidebar, no dark branch, no prefers-color-scheme block.",
+      "Do put every rendered figure on tabular numerals, including counters that tick.",
+      "Do paint the derivation scale bar over the row's own border-bottom (bottom: -1px, no track).",
+      "Do compute that scale's maximum per unit run via topeDelTramo, never per rendered block, and never let a bar span a unit change.",
+      "Do apply the 0.4% minimum width to nonzero values only; a zero draws nothing.",
+      "Do route every screen-reader announcement through the single aria-live region in App.jsx.",
+      "Do add every new pressable control to the @media (pointer: coarse) 44px block.",
+      "Do keep Inter. It is a deliberate canon commitment and a knowing override of the \"overused font\" finding, and it is what the digit-legibility rules are tuned against.",
+      "Do leave the answer sentence as the largest element in an answered turn.",
+      "Do use white for things that can be acted on, and hairlines for everything structural.",
+      "Do honour prefers-reduced-motion: reduce — it is already wired to collapse every animation and transition, including the disclosure's grid animation."
+    ],
+    "donts": [
+      "Don't give the scale bar a track, or a second rule appears on every ledger row.",
+      "Don't colour the \"cannot answer\" state red or give it an alert icon. It is slate because it is rigour, not breakage. Red is reserved for the program actually failing.",
+      "Don't put clarification options or a declared assumption behind \"Mostrar más\". Options are the answer; an assumption is a condition of the sentence above it.",
+      "Don't show the machine state name (NO_SE_PUEDE_RESPONDER, NECESITO_QUE_ACLARES) on screen. The state decides what is drawn; the officer sees the consequence, not the label.",
+      "Don't add cards or shadows. The composer's lift is the only elevation in the system.",
+      "Don't introduce a second aria-live region, or per-turn live regions.",
+      "Don't add a second column, a sidebar, or a full-bleed surface outside the column wrapper.",
+      "Don't add an icon library. The five 16px icons are drawn in Iconos.jsx on a shared 1.5 stroke; new icons match that spec.",
+      "Don't use accent colour decoratively. It marks action, focus, and drawn proportion, and nothing else."
+    ]
+  }
+}

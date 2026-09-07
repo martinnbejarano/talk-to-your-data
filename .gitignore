@@ -14,3 +14,8 @@ evals/reports/*.json
 # Las capturas con que se verifica la pantalla a mano: son evidencia de una
 # corrida, no fuente. Lo que vale se anota en `NOTES/`.
 .capturas/
+
+# Las capturas de la revisión de diseño: misma regla que `.capturas/` —
+# evidencia de una corrida, no fuente. Lo que vale queda en `web/DESIGN.md`.
+web/.impeccable/review/
+web/.impeccable/questions/
