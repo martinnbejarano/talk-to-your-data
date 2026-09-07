@@ -1,9 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { preguntar, traerInstituciones } from "./api.js";
 import { FECHA_DE_CORTE } from "./config.js";
 import { BarraInstitucion } from "./componentes/BarraInstitucion.jsx";
 import { Respuesta } from "./componentes/Respuesta.jsx";
+import { Alerta, Flecha } from "./componentes/Iconos.jsx";
 
 // Un atajo, no una lista de preguntas permitidas: es la única con valor esperado
 // conocido —7.859 en Banco Andino, 321 en Fintech Cuyo—.
@@ -12,19 +13,19 @@ const PREGUNTA_DE_REFERENCIA = "¿Cuántos clientes de riesgo alto tenemos?";
 export function App() {
   const [instituciones, setInstituciones] = useState([]);
   const [institucionId, setInstitucionId] = useState(null);
-  const [texto, setTexto] = useState(PREGUNTA_DE_REFERENCIA);
+  const [texto, setTexto] = useState("");
 
-  // Distinta de `texto`: si el oficial empieza a escribir la siguiente, la
-  // pregunta de arriba tiene que seguir siendo la que se contestó.
-  const [preguntaContestada, setPreguntaContestada] = useState(null);
-  const [contrato, setContrato] = useState(null);
-
-  // `[{pregunta, respuesta}]`. Los arrastra el front porque el servidor no
+  // `[{pregunta, contrato}]`. Los arrastra el front porque el servidor no
   // guarda sesiones.
-  const [historial, setHistorial] = useState([]);
+  const [turnos, setTurnos] = useState([]);
 
-  const [pensando, setPensando] = useState(false);
-  const [seCayo, setSeCayo] = useState(null);
+  // El turno que está en vuelo, y su falla si se cayó. Vive separado de
+  // `turnos` porque todavía no tiene contrato.
+  const [enCurso, setEnCurso] = useState(null);
+  const pensando = enCurso !== null && enCurso.error === null;
+
+  const [arranque, setArranque] = useState(null);
+  const fondo = useRef(null);
 
   useEffect(() => {
     traerInstituciones()
@@ -32,8 +33,15 @@ export function App() {
         setInstituciones(traidas);
         if (traidas.length > 0) setInstitucionId(traidas[0].institucion_id);
       })
-      .catch((error) => setSeCayo(String(error.message ?? error)));
+      .catch((error) => setArranque(String(error.message ?? error)));
   }, []);
+
+  // El turno nuevo aparece abajo del todo: sin esto queda tapado por la caja de
+  // preguntar, que es pegajosa.
+  useLayoutEffect(() => {
+    if (turnos.length === 0 && enCurso === null) return;
+    fondo.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+  }, [turnos.length, enCurso]);
 
   /** **Una pregunta escrita a mano siempre va con `turnos` vacío**, y sólo el
    * clic en una opción arrastra los turnos previos. Un número que dependa de una
@@ -41,20 +49,16 @@ export function App() {
    * historial existe para cerrar una repregunta —ahí el turno previo sí está a la
    * vista— y no para convertir esto en un chat con memoria.
    */
-  async function mandar(pregunta, turnos) {
-    if (!pregunta.trim() || institucionId === null) return;
-    setPensando(true);
-    setSeCayo(null);
-    setPreguntaContestada(pregunta);
-    setContrato(null);
+  async function mandar(pregunta, historial) {
+    if (!pregunta.trim() || institucionId === null || pensando) return;
+    setEnCurso({ pregunta, error: null });
+    setTexto("");
     try {
-      const vuelta = await preguntar({ institucionId, pregunta, historial: turnos });
-      setContrato(vuelta);
-      setHistorial([...turnos, { pregunta, respuesta: vuelta.respuesta }]);
+      const vuelta = await preguntar({ institucionId, pregunta, historial });
+      setTurnos((previos) => [...previos, { pregunta, contrato: vuelta }]);
+      setEnCurso(null);
     } catch (error) {
-      setSeCayo(String(error.message ?? error));
-    } finally {
-      setPensando(false);
+      setEnCurso({ pregunta, error: String(error.message ?? error) });
     }
   }
 
@@ -62,89 +66,131 @@ export function App() {
   // así se cierra la aclaración sin sesión en el servidor y sin que el oficial
   // reescriba la pregunta entera.
   function elegirOpcion(opcion) {
-    setTexto(opcion);
-    mandar(opcion, historial);
+    mandar(
+      opcion,
+      turnos.map((turno) => ({ pregunta: turno.pregunta, respuesta: turno.contrato.respuesta })),
+    );
   }
 
   // El historial no cruza de institución: arrastrarlo sería meter datos de una
   // en el contexto de otra.
   function elegirInstitucion(id) {
     setInstitucionId(id);
-    setHistorial([]);
-    setContrato(null);
-    setPreguntaContestada(null);
-    setSeCayo(null);
+    setTurnos([]);
+    setEnCurso(null);
   }
 
-  const institucion = instituciones.find((i) => i.institucion_id === institucionId);
+  const vacio = turnos.length === 0 && enCurso === null;
+
+  // Una sola región viva para toda la pantalla. Ponerla en cada turno hacía que
+  // abrir "Mostrar más" volviera a leer la respuesta entera, y que la llegada
+  // del turno nuevo no se anunciara nunca: una región insertada junto con su
+  // contenido no dispara.
+  const anuncio = enCurso
+    ? enCurso.error === null
+      ? "Pensando. La respuesta tarda entre trece y veinte segundos."
+      : "No se pudo hablar con el sistema. La pregunta no se contestó."
+    : (turnos[turnos.length - 1]?.contrato.respuesta ?? "");
 
   return (
-    <div className="page">
-      <div className="frame">
-        <BarraInstitucion
-          instituciones={instituciones}
-          institucionId={institucionId}
-          alElegir={elegirInstitucion}
-          fechaDeCorte={FECHA_DE_CORTE}
-          bloqueado={pensando}
-        />
+    <div className="app">
+      <BarraInstitucion
+        instituciones={instituciones}
+        institucionId={institucionId}
+        alElegir={elegirInstitucion}
+        fechaDeCorte={FECHA_DE_CORTE}
+        bloqueado={pensando}
+      />
 
-        <div className="cuerpo">
-          <form
-            className="preguntar"
-            onSubmit={(evento) => {
-              evento.preventDefault();
-              mandar(texto, []);
-            }}
-          >
-            <input
-              type="text"
-              value={texto}
-              disabled={pensando}
-              placeholder="Preguntá en castellano, como se lo preguntarías a un analista"
-              aria-label="Tu pregunta"
-              onChange={(evento) => setTexto(evento.target.value)}
-            />
-            <button type="submit" className="plena" disabled={pensando || institucionId === null}>
-              {pensando ? "Pensando…" : "Preguntar"}
-            </button>
-            {texto !== PREGUNTA_DE_REFERENCIA && (
-              <p className="sugerencia">
-                <button type="button" onClick={() => setTexto(PREGUNTA_DE_REFERENCIA)}>
-                  {PREGUNTA_DE_REFERENCIA}
-                </button>
-              </p>
-            )}
-          </form>
+      <p className="sr-only" role="status" aria-live="polite">
+        {anuncio}
+      </p>
 
-          {pensando && <Pensando pregunta={preguntaContestada} />}
-
-          {seCayo && (
-            <div className="se-cayo">
-              <p>No se pudo hablar con el sistema. La pregunta no se contestó.</p>
-              <code>{seCayo}</code>
-            </div>
-          )}
-
-          {!pensando && !seCayo && !contrato && (
-            <p className="vacio">
-              Escribí una pregunta sobre los datos de tu institución. La respuesta tarda entre
-              quince y veinte segundos: se ejecutan consultas de verdad, y cada número que vas a
-              ver salió de una de ellas.
-            </p>
-          )}
-
-          {!pensando && contrato && (
-            <Respuesta
-              contrato={contrato}
-              pregunta={preguntaContestada}
-              institucion={institucion?.nombre ?? ""}
-              fechaDeCorte={FECHA_DE_CORTE}
-              alElegirOpcion={elegirOpcion}
-              bloqueado={pensando}
+      <main className={vacio ? "hilo centrado" : "hilo"}>
+        <div className="columna">
+          {vacio && (
+            <Vacio
+              arranque={arranque}
+              alSugerir={() => mandar(PREGUNTA_DE_REFERENCIA, [])}
+              bloqueado={institucionId === null}
             />
           )}
+
+          {turnos.map((turno, i) => (
+            <article className="turno" key={i}>
+              <Dicho pregunta={turno.pregunta} />
+              <Respuesta
+                contrato={turno.contrato}
+                alElegirOpcion={elegirOpcion}
+                bloqueado={pensando}
+              />
+            </article>
+          ))}
+
+          {enCurso && (
+            <article className="turno">
+              <Dicho pregunta={enCurso.pregunta} />
+              {enCurso.error === null ? <Pensando /> : <Falla error={enCurso.error} />}
+            </article>
+          )}
+
+          <div ref={fondo} />
         </div>
+      </main>
+
+      <Preguntar
+        texto={texto}
+        alEscribir={setTexto}
+        alMandar={() => mandar(texto, [])}
+        bloqueado={pensando || institucionId === null}
+        pensando={pensando}
+      />
+    </div>
+  );
+}
+
+function Dicho({ pregunta }) {
+  return (
+    <div className="dicho">
+      <p>{pregunta}</p>
+    </div>
+  );
+}
+
+function Vacio({ arranque, alSugerir, bloqueado }) {
+  if (arranque) {
+    return (
+      <div className="vacio">
+        <h1>No se pudo hablar con el sistema</h1>
+        <p>
+          No se pudieron traer las instituciones, así que todavía no hay nada que preguntar.
+          Revisá que el backend esté levantado.
+        </p>
+        <div className="marca falla">
+          <span className="icono">
+            <Alerta />
+          </span>
+          <p>
+            <code>{arranque}</code>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="vacio">
+      <h1>Preguntá sobre los datos de tu institución</h1>
+      <p>
+        En castellano, como se lo preguntarías a un analista. La respuesta tarda entre trece y
+        veinte segundos: se ejecutan consultas de verdad, y cada número que vas a ver salió de una
+        de ellas.
+      </p>
+      <div className="sugerencia">
+        <span>Para empezar</span>
+        <button type="button" className="opcion" disabled={bloqueado} onClick={alSugerir}>
+          <span className="titulo">{PREGUNTA_DE_REFERENCIA}</span>
+        </button>
       </div>
     </div>
   );
@@ -153,26 +199,106 @@ export function App() {
 // Existe porque `POST /ask` es sincrónico: sin un contador que se mueva, los
 // veinte segundos de espera parecen una pantalla colgada. El progreso paso a
 // paso de D-07 necesita que el backend emita eventos y no es de este hito.
-function Pensando({ pregunta }) {
+function Pensando() {
   const [segundos, setSegundos] = useState(0);
-  const arranque = useRef(Date.now());
 
   useEffect(() => {
-    arranque.current = Date.now();
-    const reloj = setInterval(
-      () => setSegundos(Math.floor((Date.now() - arranque.current) / 1000)),
-      1000,
-    );
+    const desde = Date.now();
+    const reloj = setInterval(() => setSegundos(Math.floor((Date.now() - desde) / 1000)), 1000);
     return () => clearInterval(reloj);
-  }, [pregunta]);
+  }, []);
 
   return (
-    <div className="pensando">
-      <span className="que">Pensando… {segundos} s</span>
-      <p className="cuanto">
-        Se están escribiendo y ejecutando consultas contra los datos de tu institución. Suele
-        tardar entre quince y veinte segundos.
+    <div>
+      <p className="pensando">
+        <span className="punto" />
+        Pensando
+        {/* Fuera del anuncio: leído en vivo, el contador habla una vez por
+            segundo durante veinte segundos. */}
+        <span className="seg" aria-hidden="true">
+          {" "}
+          · {segundos} s
+        </span>
+      </p>
+      <p className="pensando-glosa">
+        Se están escribiendo y ejecutando consultas contra los datos de tu institución.
       </p>
     </div>
+  );
+}
+
+function Falla({ error }) {
+  return (
+    <div className="marca falla" role="alert">
+      <span className="icono">
+        <Alerta />
+      </span>
+      <div>
+        <p>
+          <b>No se pudo hablar con el sistema.</b> La pregunta no se contestó, así que no hay
+          ningún número que mirar. Probá de nuevo.
+        </p>
+        <code>{error}</code>
+      </div>
+    </div>
+  );
+}
+
+/** Enter manda y Shift+Enter baja de línea, que es lo que el oficial ya espera
+ * de cualquier caja de texto de este tipo. El alto lo fija el contenido: una
+ * pregunta larga se ve entera antes de mandarla. */
+function Preguntar({ texto, alEscribir, alMandar, bloqueado, pensando }) {
+  const caja = useRef(null);
+
+  useLayoutEffect(() => {
+    const nodo = caja.current;
+    if (!nodo) return;
+    nodo.style.height = "auto";
+    nodo.style.height = `${nodo.scrollHeight}px`;
+  }, [texto]);
+
+  return (
+    <form
+      className="preguntar"
+      onSubmit={(evento) => {
+        evento.preventDefault();
+        alMandar();
+      }}
+    >
+      <div className="columna">
+        <div className="caja">
+          <label className="sr-only" htmlFor="pregunta">
+            Tu pregunta
+          </label>
+          <textarea
+            id="pregunta"
+            ref={caja}
+            rows={1}
+            value={texto}
+            disabled={pensando}
+            placeholder={pensando ? "Contestando la anterior…" : "Preguntá en castellano…"}
+            onChange={(evento) => alEscribir(evento.target.value)}
+            onKeyDown={(evento) => {
+              if (evento.key === "Enter" && !evento.shiftKey) {
+                evento.preventDefault();
+                alMandar();
+              }
+            }}
+          />
+          <button
+            type="submit"
+            className="enviar"
+            disabled={bloqueado || !texto.trim()}
+            aria-label="Preguntar"
+          >
+            <Flecha />
+          </button>
+        </div>
+        <p className="pie">
+          Cada respuesta se calcula contra los datos de la institución elegida, a la fecha de
+          corte.
+        </p>
+      </div>
+    </form>
   );
 }

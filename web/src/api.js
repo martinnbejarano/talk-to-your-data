@@ -1,6 +1,9 @@
-// Las tres llamadas al backend. Ninguna interpreta lo que trae: el contrato
+// Las dos llamadas al backend. Ninguna interpreta lo que trae: el contrato
 // llega entero, la pantalla lo dibuja campo por campo y **el front nunca parsea
 // el texto libre que escribe el modelo**.
+//
+// `GET /auditoria/{traza_id}` no se llama desde acá: el SQL, el plan y los
+// tiempos salieron de la pantalla y se leen contra los logs de la API.
 
 import { API_URL } from "./config.js";
 
@@ -20,10 +23,6 @@ export async function preguntar({ institucionId, pregunta, historial }) {
       historial,
     }),
   });
-}
-
-export async function traerAuditoria(trazaId) {
-  return pedir(`/auditoria/${encodeURIComponent(trazaId)}`);
 }
 
 async function pedir(camino, opciones) {

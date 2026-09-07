@@ -6,35 +6,38 @@ import { fecha } from "../formato.js";
  * mapear pone la palabra "tenant" delante del oficial; el arreglo es que el
  * contrato acote `origen` a un enum. */
 const ORIGENES = {
-  tenant_config: "lo fijó tu institución",
-  sistema: "es una definición del sistema, igual para todas las instituciones",
+  tenant_config: "tu institución",
+  sistema: "el sistema, igual para todas las instituciones",
 };
 
+/** Va primero adentro de "Mostrar más": el criterio es lo que decide si el
+ * número está bien. La aritmética viene después y sólo importa si el criterio
+ * ya convenció. */
 export function Definicion({ definiciones }) {
   if (!definiciones || definiciones.length === 0) return null;
 
   return (
-    <div className="definicion">
-      <span className="rotulo">
-        {definiciones.length === 1 ? "Definición aplicada" : "Definiciones aplicadas"}
-      </span>
+    <section className="seccion definicion">
+      <h3>{definiciones.length === 1 ? "Qué se contó" : "Qué se contó, concepto por concepto"}</h3>
       {/* La clave es la posición y no el concepto: una respuesta puede traer el
           mismo concepto dos veces, una por cada parámetro. */}
       {definiciones.map((definicion, i) => (
         <div key={i} className="una-definicion">
           <p>{definicion.texto}</p>
-          <div className="parametros">
-            <span className="parametro">
-              <b>{definicion.parametro ?? "sin parámetros de tu institución"}</b>
-              {definicion.origen && (
-                <span className="origen">· {ORIGENES[definicion.origen] ?? definicion.origen}</span>
-              )}
-              <span className="antes">{desdeCuando(definicion.vigente_desde)}</span>
-            </span>
-          </div>
+          <dl className="procedencia">
+            <div>
+              <dt>Parámetro</dt>
+              <dd>{definicion.parametro ?? "Ninguno de tu institución"}</dd>
+            </div>
+            <div>
+              <dt>Lo fijó</dt>
+              <dd>{ORIGENES[definicion.origen] ?? definicion.origen ?? "sin declarar"}</dd>
+            </div>
+            <Vigencia vigenteDesde={definicion.vigente_desde} />
+          </dl>
         </div>
       ))}
-    </div>
+    </section>
   );
 }
 
@@ -42,7 +45,19 @@ export function Definicion({ definiciones }) {
  * omitirla dejaría al oficial sin saber si el parámetro tiene una sola versión o
  * si nadie se fijó, y tomar la versión vieja de un umbral es el error más caro de
  * esta base. */
-function desdeCuando(vigenteDesde) {
-  if (!vigenteDesde) return "Nunca cambió: el parámetro tiene una sola versión.";
-  return `Rige desde el ${fecha(vigenteDesde)}.`;
+function Vigencia({ vigenteDesde }) {
+  if (!vigenteDesde) {
+    return (
+      <div>
+        <dt>Versiones</dt>
+        <dd>Una sola: nunca cambió</dd>
+      </div>
+    );
+  }
+  return (
+    <div>
+      <dt>Rige desde</dt>
+      <dd>{fecha(vigenteDesde)}</dd>
+    </div>
+  );
 }

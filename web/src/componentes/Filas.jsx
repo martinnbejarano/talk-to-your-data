@@ -8,7 +8,7 @@ export function Filas({ filas }) {
   return (
     <details className="filas">
       <summary>
-        Ver las filas
+        Ver las filas de la consulta
         <span className="glosa">
           muestra de {filas.muestra.length} sobre {numero(filas.total)}
         </span>

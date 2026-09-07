@@ -1,5 +1,6 @@
 import { leerDerivacion } from "../derivacion.js";
 import { numero } from "../formato.js";
+import { Baja } from "./Iconos.jsx";
 
 // Qué se dibuja lo decide `src/derivacion.js`, que es donde viven el corte
 // resta→suma y el corte entre unidades. Acá sólo se pinta.
@@ -8,7 +9,7 @@ export function Derivacion({ derivacion, valorFinal, titulo }) {
   if (bloques.length === 0) return null;
 
   return (
-    <div className="derivacion">
+    <section className="seccion derivacion">
       <h3>{titulo}</h3>
       <div className={enTramos ? "tramos" : undefined}>
         {bloques.map((bloque, i) => (
@@ -18,10 +19,11 @@ export function Derivacion({ derivacion, valorFinal, titulo }) {
       {enTramos && (
         <p className="no-es-resta">
           <b>Ojo con restar de arriba abajo.</b> Entre tramos los números no se restan, porque cada
-          tramo cuenta otra cosa.
+          tramo cuenta otra cosa. Las barras tampoco se comparan de un tramo al otro: donde cambia
+          lo que se cuenta, la escala vuelve a empezar.
         </p>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -29,7 +31,9 @@ function Bloque({ bloque, enTramos }) {
   if (bloque.tipo === "cambio-de-unidad") {
     return (
       <p className="cambio-de-unidad">
-        <span className="flecha">↓</span>
+        <span className="flecha">
+          <Baja />
+        </span>
         <span>
           Acá <b>cambia lo que se cuenta</b>
           {bloque.de ? <>: se dejan de contar {bloque.de} y </> : <>: </>}
@@ -53,10 +57,13 @@ function Bloque({ bloque, enTramos }) {
     );
   }
 
+  // `tope` lo trae el bloque y vale para el tramo entero: la escala nunca cruza
+  // un cambio de unidad, porque comparar alertas contra clientes daría una
+  // proporción que no significa nada.
   const escalones = (
     <div className="escalones">
       {bloque.filas.map((fila) => (
-        <Escalon key={fila.clave} fila={fila} />
+        <Escalon key={fila.clave} fila={fila} tope={bloque.tope} />
       ))}
     </div>
   );
@@ -71,11 +78,21 @@ function Bloque({ bloque, enTramos }) {
   );
 }
 
-function Escalon({ fila }) {
+function Escalon({ fila, tope }) {
   const clases = ["escalon"];
   if (fila.sangria) clases.push("sangria");
   if (fila.esResultado) clases.push("resultado");
   if (fila.apagado) clases.push("apagado");
+
+  // Un escalón que no es cero nunca se dibuja como cero: sin el piso, 660 sobre
+  // 180.000 desaparece y el ojo lee "ninguno" donde hay 660. **El cero sí se
+  // dibuja como cero**: el piso es para los chicos, no para los que no están.
+  const proporcion =
+    typeof fila.n !== "number" || tope <= 0
+      ? null
+      : fila.n === 0
+        ? 0
+        : Math.max(Math.abs(fila.n) / tope, 0.004);
 
   return (
     <div className={clases.join(" ")}>
@@ -84,6 +101,11 @@ function Escalon({ fila }) {
       {fila.delta !== null && (
         <span className="delta">
           {fila.delta === 0 ? "no quedó ninguno afuera" : `−${numero(fila.delta)}`}
+        </span>
+      )}
+      {proporcion !== null && (
+        <span className="escala" aria-hidden="true">
+          <span style={{ width: `${proporcion * 100}%` }} />
         </span>
       )}
     </div>

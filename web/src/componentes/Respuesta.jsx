@@ -1,66 +1,92 @@
-import { Cifra } from "./Cifra.jsx";
+import { useState } from "react";
+
 import { Definicion } from "./Definicion.jsx";
 import { Derivacion } from "./Derivacion.jsx";
-import { DetalleTecnico } from "./DetalleTecnico.jsx";
 import { Exclusiones } from "./Exclusiones.jsx";
 import { Filas } from "./Filas.jsx";
-import { Hueco, Opciones, Supuesto } from "./BloqueDeEstado.jsx";
+import { Opciones, Supuesto, SinNumero } from "./BloqueDeEstado.jsx";
+import { Chevron } from "./Iconos.jsx";
 import { numero } from "../formato.js";
 
 /** **El nombre del estado no aparece nunca en pantalla.** El estado decide qué
- * se dibuja —el supuesto declarado, las opciones, o qué falta— y ahí termina su
- * papel: lo que el oficial ve es la consecuencia, no la etiqueta.
+ * se dibuja —el supuesto declarado, las opciones, o que no hay número— y ahí
+ * termina su papel: lo que el oficial ve es la consecuencia, no la etiqueta.
+ *
+ * Sin tocar nada se lee **una sola oración**. Todo lo que la sostiene vive
+ * detrás de "Mostrar más", y adentro va en el orden en que se audita: primero
+ * **qué se contó**, que es lo que decide si el número está bien, y recién
+ * después la aritmética que lo produjo.
+ *
+ * El SQL, el plan y los tiempos ya no están en la pantalla: viven en los logs
+ * de la API, contra `traza_id`, que es lo único de esa parte que queda acá.
  */
-export function Respuesta({ contrato, pregunta, institucion, fechaDeCorte, alElegirOpcion, bloqueado }) {
-  const hayNumero = contrato.valor !== null && contrato.valor !== undefined;
-  const hayDerecha =
-    (contrato.derivacion ?? []).length > 0 || (contrato.exclusiones ?? []).length > 0;
+export function Respuesta({ contrato, alElegirOpcion, bloqueado }) {
+  const [mas, setMas] = useState(false);
+
+  const hayDerivacion = (contrato.derivacion ?? []).length > 0;
+  const hayMas =
+    hayDerivacion ||
+    (contrato.definiciones_usadas ?? []).length > 0 ||
+    (contrato.exclusiones ?? []).length > 0 ||
+    (contrato.filas?.muestra ?? []).length > 0;
 
   return (
-    <>
-      <h2 className="pregunta">{pregunta}</h2>
+    <div className="respuesta">
+      <p className="frase">{contrato.respuesta}</p>
 
-      <div className={hayDerecha ? "cols" : "cols sin-derecha"}>
-        <div className="izq">
-          {hayNumero ? (
-            <>
-              <Cifra valor={contrato.valor} institucion={institucion} fechaDeCorte={fechaDeCorte} />
-              {contrato.respuesta && <p className="en-palabras">{contrato.respuesta}</p>}
-            </>
-          ) : (
-            // Donde iría el número va una frase del mismo tamaño, nunca un cero.
-            <p className="en-lugar-del-numero">{contrato.respuesta}</p>
-          )}
+      {/* El supuesto no está detrás de ningún botón: es una condición de la
+          oración de arriba, no un detalle de respaldo. */}
+      <Supuesto supuestos={contrato.supuestos} />
 
-          {contrato.estado === "NO_SE_PUEDE_RESPONDER" && <Hueco />}
+      {contrato.estado === "NO_SE_PUEDE_RESPONDER" && <SinNumero />}
 
-          <Supuesto supuestos={contrato.supuestos} />
+      <Opciones opciones={contrato.opciones} alElegir={alElegirOpcion} bloqueado={bloqueado} />
 
-          <Opciones
-            opciones={contrato.opciones}
-            alElegir={alElegirOpcion}
-            bloqueado={bloqueado}
-          />
-
-          <Definicion definiciones={contrato.definiciones_usadas} />
-
-          <Filas filas={contrato.filas} />
+      {hayMas && (
+        <div className="acciones">
+          <button type="button" className="boton" aria-expanded={mas} onClick={() => setMas(!mas)}>
+            Mostrar más
+            <Chevron className="caret" />
+          </button>
         </div>
+      )}
 
-        {hayDerecha && (
-          <div className="der">
-            <Derivacion
-              derivacion={contrato.derivacion}
-              valorFinal={contrato.valor?.n ?? null}
-              titulo={tituloDeLaDerivacion(contrato)}
-            />
-            <Exclusiones exclusiones={contrato.exclusiones} />
-          </div>
-        )}
+      {hayMas && (
+        <Gaveta abierta={mas}>
+          <Definicion definiciones={contrato.definiciones_usadas} />
+          <Derivacion
+            derivacion={contrato.derivacion}
+            valorFinal={contrato.valor?.n ?? null}
+            titulo={tituloDeLaDerivacion(contrato)}
+          />
+          <Exclusiones exclusiones={contrato.exclusiones} />
+          {/* Un nivel más adentro: las filas son lo más pesado de leer. */}
+          <Filas filas={contrato.filas} />
+          {/* Lo único que sobrevive del bloque técnico: sin este número, un
+              problema reportado por el oficial no se encuentra en los logs. */}
+          <p className="traza">
+            Si algo de esta respuesta no cierra, pasale este número a tu equipo de sistemas:{" "}
+            <code>{contrato.traza_id}</code>
+          </p>
+        </Gaveta>
+      )}
+    </div>
+  );
+}
+
+/** El alto se anima con `grid-template-rows: 0fr → 1fr`, que es la única forma
+ * de hacerlo sin medir el contenido en JS. El contenido queda montado: plegarlo
+ * y desmontarlo perdería el scroll de la tabla de filas y el estado del bloque
+ * técnico, que pide la traza una sola vez. */
+function Gaveta({ abierta, children }) {
+  return (
+    <div className={abierta ? "gaveta abierta" : "gaveta"}>
+      <div>
+        <div className="adentro" inert={abierta ? undefined : true}>
+          {children}
+        </div>
       </div>
-
-      <DetalleTecnico contrato={contrato} />
-    </>
+    </div>
   );
 }
 
