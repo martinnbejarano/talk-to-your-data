@@ -112,12 +112,20 @@ más adentro.
   (D-08). No hay tipos de cambio.
 - La respuesta es **sincrónica y sin streaming**: hoy no hay eventos del backend,
   así que el progreso paso a paso de D-07 todavía no se puede dibujar.
+- **Hay gráfico sólo donde la respuesta es una serie** (D-16) —altas por mes,
+  monto por moneda, alertas por estado—. Va arriba, junto a la oración y no
+  detrás de "Mostrar más", con su tabla desplegada debajo: el dibujo sirve para
+  ver la forma, los números son para defenderlos ante un auditor. Una respuesta
+  de un solo número no lleva gráfico ni lo ofrece. **Decidido y todavía no
+  construido**: entra después de las siete contestables que fallan las tres
+  veces.
 - **Desktop y móvil**: la interfaz tiene que funcionar de verdad en teléfono, no
   sólo no romperse.
 
 **Fuera de alcance, decidido y no olvidado**: autenticación, escrituras a la
 base, conversión de monedas, dedup por nombre o correo, preguntas guardadas,
-dashboards, caché de respuestas y visualización de resultados.
+dashboards y caché de respuestas. La **visualización de resultados** salió de
+esta lista con D-16, y con un alcance angosto: una serie se dibuja, un número no.
 
 ## Brand Commitments
 
