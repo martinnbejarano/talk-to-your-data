@@ -1,0 +1,77 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 1,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      },
+      "ambigua": {
+        "preguntas": 1,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 17194.7,
+      "p95": 9250.0
+    },
+    "tokens": {
+      "prompt": 28726,
+      "respuesta": 2319
+    },
+    "usd": 0.21,
+    "fallas": {}
+  },
+  "resultados": [
+    {
+      "id": "c-001",
+      "clase": "conteo_simple_con_periodo",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Este año onboardeamos 18.001 clientes. El conteo toma sólo altas aprobadas con fecha de alta registrada dentro del período.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 25139.4,
+      "pasos": 5,
+      "tokens_prompt": 21935,
+      "tokens_respuesta": 1854,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_8f236d56-b992-45e2-b04f-c7d1f07a06d6"
+    },
+    {
+      "id": "a-002",
+      "clase": "universo_indefinido",
+      "categoria": "ambigua",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Tenemos 174.669 clientes vigentes en la institución al día de hoy.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 9250.0,
+      "pasos": 2,
+      "tokens_prompt": 6791,
+      "tokens_respuesta": 465,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_6aa4ac46-5347-4aab-8e6d-6101c374f482"
+    }
+  ]
+}

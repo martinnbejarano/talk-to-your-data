@@ -1,0 +1,72 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "incontestable": {
+        "preguntas": 2,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 6396.75,
+      "p95": 3523.2
+    },
+    "tokens": {
+      "prompt": 11185,
+      "respuesta": 712
+    },
+    "usd": 0.08,
+    "fallas": {}
+  },
+  "resultados": [
+    {
+      "id": "i-008",
+      "clase": "fuera_del_tenant_comparacion",
+      "categoria": "incontestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": true,
+      "respuesta": "No puedo comparar nuestra institución con Banco Sur porque este acceso sólo permite ver datos de nuestra institución. Para hacer esa comparación haría falta contar con autorización y datos de Banco Sur bajo el mismo criterio de medición.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 3523.2,
+      "pasos": 1,
+      "tokens_prompt": 3205,
+      "tokens_respuesta": 147,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_773c9321-7192-4e78-a747-07bc6782bd5f"
+    },
+    {
+      "id": "i-009",
+      "clase": "fuera_del_tenant_nombrado",
+      "categoria": "incontestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": true,
+      "respuesta": "No puedo responder por Fintech Cuyo porque esta sesión sólo tiene acceso a los datos de la institución habilitada. Para evitar mezclar instituciones, no informo un número de otra entidad ni sustituyo la respuesta con datos propios.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 9270.3,
+      "pasos": 2,
+      "tokens_prompt": 7980,
+      "tokens_respuesta": 565,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_a6e2d5b1-35d9-4406-af99-0c8eaf9d4e09"
+    }
+  ]
+}

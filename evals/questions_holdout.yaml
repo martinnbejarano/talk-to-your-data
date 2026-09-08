@@ -1,0 +1,108 @@
+# Holdout de H5 · no se corre ni se mira hasta cerrar el hito.
+#
+# Por qué existe: `plan/h5-iteracion.md` pedía reservar 5-8 preguntas sin tocar
+# hasta el final, para no sobreajustar los cambios al set que ya se leyó en
+# detalle en H4. Para esas 33 preguntas ya se analizó cada falla una por una
+# (`NOTES/04-evals.md`), así que un holdout recortado del mismo archivo no
+# aísla nada — hace falta otro.
+#
+# Cómo se armó sin escribir un valor a mano: `evals/valores_esperados.yaml`
+# tiene los 9 conceptos calculados para **las dos** instituciones —18 números,
+# cada uno verificado por dos consultas independientes—, pero `questions.yaml`
+# sólo usa la otra institución cuando una perilla cambia la respuesta correcta.
+# Quedan 6 pares (concepto, institución) con número ya verificado y ninguna
+# pregunta que lo ejercite. Son exactamente eso: la misma clase de equivalencia
+# que ya existe en el set oficial, del lado de la institución que nunca se
+# preguntó. Sirven para lo que un holdout tiene que servir acá — si el cambio
+# que arregló la clase en una institución generaliza a la otra, o si fue un
+# parche puntual.
+#
+# Correrlo: .venv/bin/python evals/run.py --set questions_holdout.yaml --corridas 3
+# Una sola vez, al cerrar H5. El resultado no se usa para justificar ningún
+# cambio del loop — sólo para confirmar (o desmentir) lo que el set oficial
+# ya mostró.
+
+preguntas:
+
+  - id: h-001
+    clase: concepto_vecino_que_no_es_hallazgo_otra_institucion
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántos casos reportamos a la UIF el último trimestre?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: caso_reportado}
+    exige_derivacion: true
+    debe_mencionar: [caso_reportado]
+    detecta: >-
+      Espejo de c-012 (fintech_cuyo) en banco_andino: que use la skill de casos
+      reportados y no la de hallazgos, en la institución que el set oficial no
+      ejercita para esta clase.
+
+  - id: h-002
+    clase: conteo_simple_con_periodo_otra_institucion
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Cuántos clientes onboardeamos este año?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: cliente_onboardeado}
+    exige_derivacion: true
+    debe_mencionar: [cliente_onboardeado]
+    detecta: >-
+      Espejo de c-001 (banco_andino) en fintech_cuyo: que cuente altas del
+      período y no aprobados, sin haber sido la institución sobre la que se
+      ajustó nada durante el loop.
+
+  - id: h-003
+    clase: inferencia_sin_columna_otra_institucion
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Qué clientes son probablemente la misma persona?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: misma_persona}
+    exige_derivacion: true
+    debe_mencionar: [misma_persona]
+    detecta: >-
+      Espejo de c-010 (banco_andino) en fintech_cuyo: que normalice el
+      documento antes de agrupar y declare que "persona" es una inferencia.
+
+  - id: h-004
+    clase: agregacion_con_desglose_obligatorio_otra_institucion
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Cuál fue el monto total transado por los clientes de riesgo alto el último trimestre?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: monto_transado}
+    exige_valor: false
+    exige_derivacion: true
+    exige_desglose: true
+    debe_mencionar: [monto_transado]
+    detecta: >-
+      Espejo de c-004 (banco_andino) en fintech_cuyo: que no entregue un total
+      único entre monedas ni entre sentidos de la operación.
+
+  - id: h-005
+    clase: agregacion_con_denominador_parcial_otra_institucion
+    categoria: contestable
+    institucion: fintech_cuyo
+    pregunta: "¿Cuál es el tiempo promedio de resolución de casos?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: resolucion_de_casos}
+    exige_derivacion: true
+    debe_mencionar: [resolucion_de_casos]
+    detecta: >-
+      Espejo de c-009 (banco_andino) en fintech_cuyo: que promedie sólo los
+      casos cerrados y declare la antigüedad de los abiertos aparte.
+
+  - id: h-006
+    clase: umbral_de_confirmacion_indefinido_otra_institucion
+    categoria: ambigua
+    institucion: fintech_cuyo
+    pregunta: "¿Cuántos PEPs tenemos?"
+    estado_esperado: [NECESITO_QUE_ACLARES, RESPONDIDA_CON_SUPUESTO]
+    valores_admisibles:
+      - {concepto: pep_confirmado, escalon: pep_vigente}
+      - {concepto: pep_confirmado, escalon: pep_historico}
+    detecta: >-
+      Espejo de a-005 (banco_andino) en fintech_cuyo: la ambigüedad de D-13
+      —vigentes contra históricos— sostenida en la institución que el set
+      oficial no ejercita para esta clase.

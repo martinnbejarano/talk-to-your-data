@@ -1,0 +1,72 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "incontestable": {
+        "preguntas": 2,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 38324.2,
+      "p95": 31927.0
+    },
+    "tokens": {
+      "prompt": 56900,
+      "respuesta": 4949
+    },
+    "usd": 0.43,
+    "fallas": {}
+  },
+  "resultados": [
+    {
+      "id": "i-003",
+      "clase": "lista_ausente_en_la_data",
+      "categoria": "incontestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": true,
+      "respuesta": "No puedo dar un número confiable de clientes en listas de sanciones internacionales como OFAC. En los datos disponibles no aparecen coincidencias registradas contra listas de sanciones; eso se trata como falta de dato, no como cero.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 44721.4,
+      "pasos": 7,
+      "tokens_prompt": 33287,
+      "tokens_respuesta": 3056,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_6078512d-9a61-4131-9294-09aa0e1536a5"
+    },
+    {
+      "id": "i-007",
+      "clase": "anterior_al_horizonte_de_la_tabla",
+      "categoria": "incontestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": true,
+      "respuesta": "No puedo responder cuántos casos abrimos en 2024 porque ese período queda antes del primer caso abierto registrado para esta institución. La base muestra como primer caso abierto disponible el 2025-08-04.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 31927.0,
+      "pasos": 6,
+      "tokens_prompt": 23613,
+      "tokens_respuesta": 1893,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_8ddc0d78-2cdc-4cc5-b409-f595324fba16"
+    }
+  ]
+}

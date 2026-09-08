@@ -1,0 +1,51 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 1,
+    "llamadas": 1,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 1,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 60494.2,
+      "p95": 60494.2
+    },
+    "tokens": {
+      "prompt": 35460,
+      "respuesta": 5993
+    },
+    "usd": 0.36,
+    "fallas": {}
+  },
+  "resultados": [
+    {
+      "id": "c-004",
+      "clase": "agregacion_con_desglose_obligatorio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Con la cascada completa, el monto liquidado de clientes de riesgo alto en el último trimestre fue ARS 11.747.000 entrantes, ARS 11.830.000 salientes y USD 1.571.800 entrantes. No lo unifiqué en un solo total porque no hay tipo de cambio y las entradas y salidas se informan por separado.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 60494.2,
+      "pasos": 5,
+      "tokens_prompt": 35460,
+      "tokens_respuesta": 5993,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_f532c0fd-49db-4c62-a9dc-80fb6c826cd7"
+    }
+  ]
+}

@@ -7,7 +7,6 @@ definicion: |
   que siguen sin revisar y ya vencieron, y las que se revisaron tarde.
 
 depende_de_config: [review_sla_hours]
-periodo_por_defecto: ultimo_trimestre
 parametros: ["periodo (opcional)"]
 
 trampas:

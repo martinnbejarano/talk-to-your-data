@@ -12,6 +12,10 @@ periodo_por_defecto: ultimo_trimestre
 parametros: [periodo, "segmento de clientes (opcional)"]
 
 trampas:
+  - "`total` sale de transactions (1.080.005 filas), NO de clients (180.000).
+     'Los clientes de riesgo alto' es el segmento que filtra, en el escalón
+     del_segmento — no la tabla de origen de la cascada. Arrancar de clients
+     es el error más común acá y el validador de trazabilidad lo rechaza."
   - "No hay tipos de cambio y las 40 instituciones operan en las 4 monedas: un
      total único, o un total en dólares, no se puede responder."
   - "amount es siempre positivo y el sentido vive en direction: un sum(amount) a
@@ -29,7 +33,7 @@ trampas:
 
 derivacion:
   - escalon: total
-    texto: "Transacciones del período"
+    texto: "Transacciones del período (tabla transactions, no clients)"
   - escalon: activas
     texto: "no borradas"
   - escalon: del_segmento

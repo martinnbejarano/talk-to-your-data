@@ -1,0 +1,76 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 2,
+        "pass_1": 0.5,
+        "pass_n": 0.5
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 19550.4,
+      "p95": 16352.4
+    },
+    "tokens": {
+      "prompt": 31667,
+      "respuesta": 3338
+    },
+    "usd": 0.26,
+    "fallas": {
+      "numero_no_trazable": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-002",
+      "clase": "umbral_versionado_por_institucion",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": false,
+      "respuesta": "Llegué a un número y no puedo entregarlo como corresponde: alguna cifra no salió de una consulta a la base, o la derivación quedó sin los escalones que la explican. Un número que no puedo explicar entero es peor que ninguno. Volvé a preguntarlo, o pedilo más acotado.",
+      "motivos": [
+        "estado `NO_SE_PUEDE_RESPONDER`, esperaba RESPONDIDA o RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "numero_no_trazable",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 22748.4,
+      "pasos": 4,
+      "tokens_prompt": 18641,
+      "tokens_respuesta": 1977,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_c2d91ed4-6a1a-44f1-a642-0dc9c4c70c60"
+    },
+    {
+      "id": "c-013",
+      "clase": "sinonimo_del_dominio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Hay 7.859 clientes de riesgo alto vigentes para la institución. El conteo aplica el umbral configurado y suma los casos por score, marca manual o PEP vigente, excluyendo clientes dados de baja.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 16352.4,
+      "pasos": 3,
+      "tokens_prompt": 13026,
+      "tokens_respuesta": 1361,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_bcd3403b-d5d5-4fc2-835f-dea374b8f513"
+    }
+  ]
+}

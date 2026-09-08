@@ -1,0 +1,97 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 3,
+    "llamadas": 3,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 3,
+        "pass_1": 0.6666666666666666,
+        "pass_n": 0.6666666666666666
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 15534.1,
+      "p95": 15534.1
+    },
+    "tokens": {
+      "prompt": 61493,
+      "respuesta": 7921
+    },
+    "usd": 0.55,
+    "fallas": {
+      "numero_no_trazable": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-007",
+      "clase": "calculo_temporal_contra_config",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": true,
+      "respuesta": "A la fecha de corte, hay 9.339 alertas fuera del SLA de primera revisión. Son las alertas sin revisar que ya vencieron y las que fueron revisadas tarde.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 13068.1,
+      "pasos": 3,
+      "tokens_prompt": 12307,
+      "tokens_respuesta": 1122,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_e51b187a-75f0-48b1-a470-005e2c67e219"
+    },
+    {
+      "id": "c-008",
+      "clase": "mitad_vacia_de_la_definicion",
+      "categoria": "contestable",
+      "institucion": "fintech_cuyo",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": true,
+      "respuesta": "A la fecha de corte, hay 199 alertas fuera del SLA de primera revisión. Todas corresponden a alertas todavía sin revisar cuyo plazo ya venció; no hubo alertas revisadas tarde bajo el SLA vigente.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 15534.1,
+      "pasos": 3,
+      "tokens_prompt": 12303,
+      "tokens_respuesta": 1233,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_d49c597e-9f89-4386-b138-1809e15d2bee"
+    },
+    {
+      "id": "c-011",
+      "clase": "listado_ademas_del_conteo",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": false,
+      "respuesta": "Llegué a un número y no puedo entregarlo como corresponde: alguna cifra no salió de una consulta a la base, o la derivación quedó sin los escalones que la explican. Un número que no puedo explicar entero es peor que ninguno. Volvé a preguntarlo, o pedilo más acotado.",
+      "motivos": [
+        "estado `NO_SE_PUEDE_RESPONDER`, esperaba RESPONDIDA o RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "numero_no_trazable",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 58587.6,
+      "pasos": 6,
+      "tokens_prompt": 36883,
+      "tokens_respuesta": 5566,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_154895b5-e3aa-4657-be71-7dea309b7f19"
+    }
+  ]
+}

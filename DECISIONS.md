@@ -317,6 +317,88 @@ rojas por otro motivo. La del reloj movió muchísimo al sistema (`c-005` pasó 
 hallazgos a **0**) sin que nadie la atrapara. **Las dos se vuelven a correr al cerrar H5**,
 cuando `c-004`, `c-005` y `c-007` estén en verde.
 
+## D-16 · El loop migró a `/v1/responses`; el modelo de H5 se quedó en `gpt-5.5`
+
+**Qué decidimos.** Buscando bajar el costo de H5 se probaron `gpt-5.6-luna`,
+`gpt-5-mini`, `gpt-5.6-terra` y `gpt-5.4-mini`. Ninguno ganó, y en el camino hubo que
+migrar `agent/loop.py` y `agent/tools.py` de `/v1/chat/completions` a `/v1/responses`
+—esa parte sí queda, es independiente del modelo.
+
+**Por qué.** `gpt-5.6-luna` y `gpt-5.6-terra` no soportan tool calling con razonamiento en
+`/v1/chat/completions` (error 400 explícito del proveedor); la migración a `/v1/responses`
+los destrabó a los dos y no le cambió el comportamiento a `gpt-5.5` (regresión verificada
+antes y después). Pero ninguno de los dos modelos baratos convino:
+
+- `gpt-5.4-mini`: ambiguas cayó de 79 % a 12 % Pass@1 — el colapso justo en la categoría
+  que más le importa al sistema (declarar supuestos, no inventar).
+- `gpt-5.6-terra`: calidad igual o mejor que `gpt-5.5` (ambiguas 100 % en una corrida),
+  pero **el costo real por llamada salió igual** (US$0,109 contra US$0,108), no el 2,5×
+  más barato que sugiere el precio de lista — la hipótesis es que gasta más en tokens de
+  razonamiento invisibles, compensando el precio por token más bajo.
+- `gpt-5-mini` y `o4-mini` ni llegaron a medirse: el primero por verificación de
+  organización pendiente en OpenAI, el segundo por un bug de schema en la tool
+  `sample_values` (le falta `type` en `limite`, sin arreglar: no se llegó a usar).
+
+**Qué cuesta esto.** Sólo la exploración de modelos costó **~US$8** antes de tocar un
+solo bug del taxonomy loop — más que el baseline completo de H4.
+
+## D-17 · Tres arreglos de H5, con su delta
+
+Loop de un cambio a la vez sobre un **subconjunto de 13-26 preguntas**, no las 33
+completas, por presupuesto. Cada arreglo se remidió aislado antes de seguir.
+
+| Arreglo | Causa | Dónde | Delta aislado |
+|---|---|---|---|
+| Período mal declarado | `alerta_fuera_de_sla` y `misma_persona` declaraban `periodo_por_defecto` que su propio `golden_sql` ignora (finding #1 de H4) | Se sacó el campo de las dos skills | `c-007`, `c-008`: 0/1 → 1/1 |
+| Institución ajena | El prompt decía "contestá con el número propio y declaralo como supuesto" | `agent/loop.py` (prompt) + `tests/test_loop.py` actualizado | `i-008`, `i-009`: → 1/1 |
+| Cero disfrazado | Nada le decía al modelo cómo distinguir "no hay nada" de "no hay dato para este recorte" | Regla 7 nueva en el prompt: verificar catálogo completo o `MIN`/`MAX` antes de publicar un 0 | `i-003`, `i-007`: → 1/1 |
+| `misma_persona` contesta el escalón equivocado | `get_definition` nunca mostraba el campo `resultado` — el modelo asume que la respuesta es el **último** escalón, y acá el último (`legajos_repetidos`, 634) no es el resultado (`personas_repetidas`, 307) | `get_definition` ahora marca explícitamente cuál escalón va en `valor` | `c-010`, `c-011`: → 1/1 |
+| `monto_transado` arranca del universo equivocado | El modelo arrancaba la cascada de `clients` (180.000) en vez de `transactions` (1.080.005) — una regla general en el prompt no alcanzó, hizo falta explicitarlo en la skill misma | Trampa nueva + texto del escalón `total` en `monto_transado.yaml` | `c-004`: → 1/1 |
+
+**Medición de cierre, 33×1 con los cinco arreglos puestos:**
+
+| Categoría | D-14 (línea de base) | Cierre H5 |
+|---|---|---|
+| Contestable | 53 % | **80 %** |
+| Ambigua | 79 % | **88 %** |
+| Incontestable | 53 % | **90 %** |
+
+## D-18 · Lo que la corrida de cierre mostró que las corridas aisladas no vieron
+
+**Tres de los cinco arreglos volvieron a fallar en la corrida de cierre** —`c-004`
+(mismo universo equivocado), `c-011` (esta vez sin traer el listado) e `i-003` (volvió a
+publicar un número)— pese a haber pasado 1/1 en su remedición aislada. El agregado mejoró
+mucho igual, pero esto confirma lo que D-14 ya advertía: **una corrida prueba que un
+arreglo es posible, no que sea estable.** Ninguno de los cinco tiene Pass^3 real todavía.
+
+**Apareció una falsa ambigüedad nueva** en `c-015` (repreguntó donde la línea de base no
+lo hacía), que no estaba en ningún hallazgo anterior. Candidato sospechoso: la regla 7
+(cero disfrazado) puede haber vuelto al modelo más cauteloso en general. Sin confirmar,
+queda anotado para vigilar si se sigue iterando.
+
+**Se encontró y arregló un bug de costo real, ajeno a todo lo anterior:** `sample_values`
+no tenía tope ni en `limite` ni en el texto que arma para el modelo. Una corrida real pidió
+una columna de alta cardinalidad con un límite alto y el resultado, unido en una sola
+línea, llegó a **64 MB** — la API lo rechazó y la corrida completa (con 18 llamadas ya
+pagas) se perdió. Arreglado con el mismo tope que ya usa `run_sql` (`FILAS_QUE_VE_EL_MODELO
+= 50`).
+
+**Ablación, parcial.** Sólo se ablacionaron los 4 conceptos que el subconjunto reducido
+ejercitaba: `alerta_fuera_de_sla`, `riesgo_alto` y `cliente_onboardeado` sostienen solos
+(2/2 cada uno); **`misma_persona` no sostenía ni estando solo (0/2)** — confirma que su
+problema no era sólo el período, ya lo mostraba antes de encontrar el bug de `resultado`.
+Quedan sin ablacionar `hallazgo_real`, `monto_transado`, `pep_confirmado`,
+`caso_reportado` y `resolucion_de_casos`.
+
+**Qué queda pendiente para cerrar H5 de verdad:**
+- Pass^3 de los cinco arreglos (hoy sólo Pass^1).
+- Ablación de las 5 skills que faltan.
+- Correr `evals/questions_holdout.yaml` (6 preguntas, escritas y nunca corridas).
+- Confirmar o descartar la falsa ambigüedad nueva de `c-015`.
+- El DoD del plan (ambiguas/incontestables ≥ 90 % Pass^3, las 8 preguntas de referencia en
+  Pass^3) no está verificado — sólo hay Pass^1 parcial.
+
+**Costo total de la sesión: ~US$13,75.** Explorar modelos costó más que arreglar bugs.
 
 ---
 

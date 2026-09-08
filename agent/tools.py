@@ -133,6 +133,11 @@ def sample_values(institucion_id: int, tabla: str, columna: str, limite: int = 2
             "escriben en minúscula, sin comillas y sin el nombre del esquema."
         )
 
+    # Un `limite` sin tope es una columna de alta cardinalidad devuelta entera:
+    # el modelo puede pedir cualquier número, y unirlos todos en una sola línea
+    # sin cortar reventó una corrida real con un string de 64 MB.
+    limite = min(int(limite), FILAS_QUE_VE_EL_MODELO)
+
     resultado = ejecutar(
         f"SELECT DISTINCT {columna} AS valor FROM {tabla} LIMIT {int(limite)}",
         {},
@@ -171,6 +176,8 @@ def get_definition(institucion_id: int, concepto: str) -> str:
             + "\n".join(f"- `{e}` — {t}" for e, t in escalones_de(concepto).items())
             + "\n\nSi reescribís la consulta —porque el gate te rechazó el plan o porque la "
             "pregunta se corre de la canónica— seguí devolviendo estas mismas columnas."
+            f"\n\n**El escalón que va en `valor` es `{skill['resultado']}`.** No es "
+            "necesariamente el último de la lista: leé el nombre, no la posición."
         ),
         f"\n## Período por defecto\n{skill.get('periodo_por_defecto', '(la pregunta no lleva período)')}",
         "\n## Exclusiones a declarar\n" + "\n".join(f"- {e}" for e in skill.get("exclusiones", [])),
@@ -218,100 +225,94 @@ TOOLS = {
 # Lo mismo en el dialecto del proveedor, al lado del registro para que agregar
 # una tool sea una edición en un solo lugar. `institucion_id` no está en ningún
 # esquema a propósito: no es un argumento del modelo, lo pone el loop.
+#
+# Shape de `/v1/responses` (plano), no el de `/v1/chat/completions` (anidado
+# bajo `"function"`): la migración de H5 movió el loop de endpoint porque los
+# modelos gpt-5.6 no soportan tool calling con razonamiento en el viejo.
 ESPECIFICACIONES = [
     {
         "type": "function",
-        "function": {
-            "name": "list_tables",
-            "description": (
-                "Las tablas de la base con su tamaño estimado, y si tienen "
-                "tenant_id y deleted_at."
-            ),
-            "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
-            "strict": True,
-        },
+        "name": "list_tables",
+        "description": (
+            "Las tablas de la base con su tamaño estimado, y si tienen "
+            "tenant_id y deleted_at."
+        ),
+        "parameters": {"type": "object", "properties": {}, "required": [], "additionalProperties": False},
+        "strict": True,
     },
     {
         "type": "function",
-        "function": {
-            "name": "describe_table",
-            "description": "Columnas, tipos, nullability e índices disponibles de una tabla.",
-            "parameters": {
-                "type": "object",
-                "properties": {"tabla": {"type": "string"}},
-                "required": ["tabla"],
-                "additionalProperties": False,
+        "name": "describe_table",
+        "description": "Columnas, tipos, nullability e índices disponibles de una tabla.",
+        "parameters": {
+            "type": "object",
+            "properties": {"tabla": {"type": "string"}},
+            "required": ["tabla"],
+            "additionalProperties": False,
+        },
+        "strict": True,
+    },
+    {
+        "type": "function",
+        "name": "sample_values",
+        "description": (
+            "Los valores distintos que toma una columna. Usalo cuando el "
+            "tipo no te dice qué valores admite: varios enums de esta base "
+            "no tienen CHECK y sus valores no están en el esquema."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "tabla": {"type": "string"},
+                "columna": {"type": "string"},
+                "limite": {"type": ["integer", "null"], "description": "por defecto 25, tope 50"},
             },
-            "strict": True,
+            "required": ["tabla", "columna", "limite"],
+            "additionalProperties": False,
         },
+        "strict": True,
     },
     {
         "type": "function",
-        "function": {
-            "name": "sample_values",
-            "description": (
-                "Los valores distintos que toma una columna. Usalo cuando el "
-                "tipo no te dice qué valores admite: varios enums de esta base "
-                "no tienen CHECK y sus valores no están en el esquema."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "tabla": {"type": "string"},
-                    "columna": {"type": "string"},
-                    "limite": {"type": ["integer", "null"], "description": "por defecto 25"},
+        "name": "get_definition",
+        "description": (
+            "La definición curada de un concepto del negocio: qué cuenta, "
+            "qué trampas tiene, qué escalones tiene que devolver la "
+            "derivación, la config vigente de la institución y una consulta "
+            "de referencia validada. Pedila SIEMPRE antes de escribir SQL "
+            "sobre un concepto del catálogo."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {"concepto": {"type": "string"}},
+            "required": ["concepto"],
+            "additionalProperties": False,
+        },
+        "strict": True,
+    },
+    {
+        "type": "function",
+        "name": "run_sql",
+        "description": (
+            "Ejecuta un SELECT de lectura y devuelve sus filas, su plan y "
+            "su tiempo. La institución y la fecha de corte las pone el "
+            "sistema: escribí %(tenant)s y %(as_of)s en el SQL. Para el "
+            "período escribí %(desde)s y %(hasta)s y pasá `periodo`."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sql": {"type": "string"},
+                "periodo": {
+                    "type": ["string", "null"],
+                    "enum": ["este año", "último trimestre", None],
+                    "description": "sólo si la consulta usa %(desde)s y %(hasta)s",
                 },
-                "required": ["tabla", "columna", "limite"],
-                "additionalProperties": False,
             },
-            "strict": True,
+            "required": ["sql", "periodo"],
+            "additionalProperties": False,
         },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "get_definition",
-            "description": (
-                "La definición curada de un concepto del negocio: qué cuenta, "
-                "qué trampas tiene, qué escalones tiene que devolver la "
-                "derivación, la config vigente de la institución y una consulta "
-                "de referencia validada. Pedila SIEMPRE antes de escribir SQL "
-                "sobre un concepto del catálogo."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {"concepto": {"type": "string"}},
-                "required": ["concepto"],
-                "additionalProperties": False,
-            },
-            "strict": True,
-        },
-    },
-    {
-        "type": "function",
-        "function": {
-            "name": "run_sql",
-            "description": (
-                "Ejecuta un SELECT de lectura y devuelve sus filas, su plan y "
-                "su tiempo. La institución y la fecha de corte las pone el "
-                "sistema: escribí %(tenant)s y %(as_of)s en el SQL. Para el "
-                "período escribí %(desde)s y %(hasta)s y pasá `periodo`."
-            ),
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "sql": {"type": "string"},
-                    "periodo": {
-                        "type": ["string", "null"],
-                        "enum": ["este año", "último trimestre", None],
-                        "description": "sólo si la consulta usa %(desde)s y %(hasta)s",
-                    },
-                },
-                "required": ["sql", "periodo"],
-                "additionalProperties": False,
-            },
-            "strict": True,
-        },
+        "strict": True,
     },
 ]
 
