@@ -31,6 +31,8 @@ Hay una versión funcionando en [primo.martinbejarano.com](https://primo.martinb
 
 ![La respuesta a "¿Cuántos clientes de riesgo alto tenemos?", con el supuesto declarado y la derivación abierta](docs/pantalla.png)
 
+![La respuesta a "¿Cuántos casos reportamos a la UIF por mes este año?", dibujada como una línea de cinco meses con su tabla abajo](docs/grafico.png)
+
 ## Cómo levantarlo
 
 Hace falta Docker (con **≥ 4 GB** de RAM asignados), Python 3.13, Node 24 y una key de
