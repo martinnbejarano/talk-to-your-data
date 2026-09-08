@@ -66,7 +66,8 @@ def test_la_derivacion_se_exige_y_no_se_espera():
 def test_las_filas_y_el_detalle_tecnico_los_pone_el_sistema_y_no_el_modelo():
     """`filas` sale de la última consulta con más de una fila —la cascada viene en
     una sola y no es una tabla que mostrar—; si la escribiera el modelo serían
-    cinco filas verosímiles que nadie devolvió. `grafico` es el hueco de D-07."""
+    cinco filas verosímiles que nadie devolvió. Sin mapeo del modelo no hay
+    gráfico, que es el caso de las 33 preguntas del set."""
     tabla = Ok(filas=[("AR", 7000), ("UY", 859)], columnas=["pais", "n"], plan={"a": 1}, ms=3.0)
     cascada = Ok(filas=[(180000, 7859)], columnas=["total", "riesgo_alto"], plan={"b": 2}, ms=4.0)
 
@@ -76,6 +77,26 @@ def test_las_filas_y_el_detalle_tecnico_los_pone_el_sistema_y_no_el_modelo():
     assert [q["sql"] for q in contrato["queries"]] == ["SELECT … pais", "SELECT … cascada"]
     assert [q["plan"] for q in contrato["queries"]] == [{"a": 1}, {"b": 2}]
     assert contrato["grafico"] is None
+
+
+def test_el_mapeo_que_escribe_el_modelo_sale_del_loop_con_los_numeros_de_la_base():
+    """El seam entre el loop y `core/grafico.py`: el modelo nombró dos columnas y
+    el contrato sale con los puntos que devolvió Postgres. `filas.muestra` sigue
+    siendo la muestra —el gráfico no la usa— y por eso las dos cosas no se pisan."""
+    serie = Ok(
+        filas=[("2026-01", 1240), ("2026-02", 1105)],
+        columnas=["mes", "altas"],
+        plan={"a": 1},
+        ms=3.0,
+    )
+
+    contrato = loop._completar(
+        {"grafico": {"x": "mes", "y": "altas", "unidad": "clientes"}}, [("SELECT … mes", serie)]
+    )
+
+    assert contrato["grafico"]["marca"] == "linea"
+    assert contrato["grafico"]["puntos"] == [["2026-01", "1240"], ["2026-02", "1105"]]
+    assert contrato["filas"]["total"] == 2
 
 
 def test_al_agotarse_el_tope_de_pasos_la_respuesta_sale_explicada_y_sin_numero(
