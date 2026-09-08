@@ -98,6 +98,7 @@ Se puede cortar en cualquiera.
 | H4  | Set de evaluación      | [`h4-evals.md`](h4-evals.md)                   | `evals/` + primera medición                       |
 | H5  | Iteración medida       | [`h5-iteracion.md`](h5-iteracion.md)           | Reportes con la evolución                         |
 | H6  | Producto y entrega     | [`h6-entrega.md`](h6-entrega.md)               | README, PRODUCT.md, AGENT_LOG.md                  |
+| H7  | Gráficos               | [`h7-graficos.md`](h7-graficos.md)             | El campo `grafico` lleno, y una serie dibujada    |
 
 
 Documento transversal: [`testing.md`](testing.md) — cómo escribimos tests y evals, y

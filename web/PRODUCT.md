@@ -92,7 +92,7 @@ más adentro.
 **El contrato manda.** El front dibuja campo por campo lo que devuelve `POST
 /ask` y **nunca parsea el texto libre del modelo**. Campos: `estado`, `valor`,
 `respuesta`, `supuestos`, `opciones`, `definiciones_usadas`, `derivacion`,
-`exclusiones`, `filas`, `traza_id`. Endpoints: `GET /instituciones`, `POST /ask`,
+`exclusiones`, `filas`, `grafico`, `traza_id`. Endpoints: `GET /instituciones`, `POST /ask`,
 `GET /auditoria/{traza_id}` (este último, para IT).
 
 **Restricciones que ninguna decisión de diseño puede romper:**
@@ -112,20 +112,20 @@ más adentro.
   (D-08). No hay tipos de cambio.
 - La respuesta es **sincrónica y sin streaming**: hoy no hay eventos del backend,
   así que el progreso paso a paso de D-07 todavía no se puede dibujar.
-- **Hay gráfico sólo donde la respuesta es una serie** (D-16) —altas por mes,
-  monto por moneda, alertas por estado—. Va arriba, junto a la oración y no
-  detrás de "Mostrar más", con su tabla desplegada debajo: el dibujo sirve para
-  ver la forma, los números son para defenderlos ante un auditor. Una respuesta
-  de un solo número no lleva gráfico ni lo ofrece. **Decidido y todavía no
-  construido**: entra después de las siete contestables que fallan las tres
-  veces.
+- **Hay gráfico sólo donde la respuesta es una serie** (D-19) —altas por mes,
+  alertas por estado—. Va arriba, junto a la oración y no detrás de "Mostrar
+  más", con su tabla desplegada debajo: el dibujo sirve para ver la forma, los
+  números son para defenderlos ante un auditor. Una respuesta de un solo número
+  no lleva gráfico ni lo ofrece, y **una serie por moneda tampoco se dibuja**:
+  compartir el eje de valores sería sumar visualmente lo que D-08 no deja
+  sumar.
 - **Desktop y móvil**: la interfaz tiene que funcionar de verdad en teléfono, no
   sólo no romperse.
 
 **Fuera de alcance, decidido y no olvidado**: autenticación, escrituras a la
 base, conversión de monedas, dedup por nombre o correo, preguntas guardadas,
 dashboards y caché de respuestas. La **visualización de resultados** salió de
-esta lista con D-16, y con un alcance angosto: una serie se dibuja, un número no.
+esta lista con D-19, y con un alcance angosto: una serie se dibuja, un número no.
 
 ## Brand Commitments
 

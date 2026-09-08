@@ -317,6 +317,206 @@ rojas por otro motivo. La del reloj movió muchísimo al sistema (`c-005` pasó 
 hallazgos a **0**) sin que nadie la atrapara. **Las dos se vuelven a correr al cerrar H5**,
 cuando `c-004`, `c-005` y `c-007` estén en verde.
 
+## D-16 · El loop migró a `/v1/responses`; el modelo de H5 se quedó en `gpt-5.5`
+
+**Qué decidimos.** Buscando bajar el costo de H5 se probaron `gpt-5.6-luna`,
+`gpt-5-mini`, `gpt-5.6-terra` y `gpt-5.4-mini`. Ninguno ganó, y en el camino hubo que
+migrar `agent/loop.py` y `agent/tools.py` de `/v1/chat/completions` a `/v1/responses`
+—esa parte sí queda, es independiente del modelo.
+
+**Por qué.** `gpt-5.6-luna` y `gpt-5.6-terra` no soportan tool calling con razonamiento en
+`/v1/chat/completions` (error 400 explícito del proveedor); la migración a `/v1/responses`
+los destrabó a los dos y no le cambió el comportamiento a `gpt-5.5` (regresión verificada
+antes y después). Pero ninguno de los dos modelos baratos convino:
+
+- `gpt-5.4-mini`: ambiguas cayó de 79 % a 12 % Pass@1 — el colapso justo en la categoría
+  que más le importa al sistema (declarar supuestos, no inventar).
+- `gpt-5.6-terra`: calidad igual o mejor que `gpt-5.5` (ambiguas 100 % en una corrida),
+  pero **el costo real por llamada salió igual** (US$0,109 contra US$0,108), no el 2,5×
+  más barato que sugiere el precio de lista — la hipótesis es que gasta más en tokens de
+  razonamiento invisibles, compensando el precio por token más bajo.
+- `gpt-5-mini` y `o4-mini` ni llegaron a medirse: el primero por verificación de
+  organización pendiente en OpenAI, el segundo por un bug de schema en la tool
+  `sample_values` (le falta `type` en `limite`, sin arreglar: no se llegó a usar).
+
+**Qué cuesta esto.** Sólo la exploración de modelos costó **~US$8** antes de tocar un
+solo bug del taxonomy loop — más que el baseline completo de H4.
+
+## D-17 · Tres arreglos de H5, con su delta
+
+Loop de un cambio a la vez sobre un **subconjunto de 13-26 preguntas**, no las 33
+completas, por presupuesto. Cada arreglo se remidió aislado antes de seguir.
+
+| Arreglo | Causa | Dónde | Delta aislado |
+|---|---|---|---|
+| Período mal declarado | `alerta_fuera_de_sla` y `misma_persona` declaraban `periodo_por_defecto` que su propio `golden_sql` ignora (finding #1 de H4) | Se sacó el campo de las dos skills | `c-007`, `c-008`: 0/1 → 1/1 |
+| Institución ajena | El prompt decía "contestá con el número propio y declaralo como supuesto" | `agent/loop.py` (prompt) + `tests/test_loop.py` actualizado | `i-008`, `i-009`: → 1/1 |
+| Cero disfrazado | Nada le decía al modelo cómo distinguir "no hay nada" de "no hay dato para este recorte" | Regla 7 nueva en el prompt: verificar catálogo completo o `MIN`/`MAX` antes de publicar un 0 | `i-003`, `i-007`: → 1/1 |
+| `misma_persona` contesta el escalón equivocado | `get_definition` nunca mostraba el campo `resultado` — el modelo asume que la respuesta es el **último** escalón, y acá el último (`legajos_repetidos`, 634) no es el resultado (`personas_repetidas`, 307) | `get_definition` ahora marca explícitamente cuál escalón va en `valor` | `c-010`, `c-011`: → 1/1 |
+| `monto_transado` arranca del universo equivocado | El modelo arrancaba la cascada de `clients` (180.000) en vez de `transactions` (1.080.005) — una regla general en el prompt no alcanzó, hizo falta explicitarlo en la skill misma | Trampa nueva + texto del escalón `total` en `monto_transado.yaml` | `c-004`: → 1/1 |
+
+**Medición de cierre, 33×1 con los cinco arreglos puestos:**
+
+| Categoría | D-14 (línea de base) | Cierre H5 |
+|---|---|---|
+| Contestable | 53 % | **80 %** |
+| Ambigua | 79 % | **88 %** |
+| Incontestable | 53 % | **90 %** |
+
+## D-18 · Lo que la corrida de cierre mostró que las corridas aisladas no vieron
+
+**Tres de los cinco arreglos volvieron a fallar en la corrida de cierre** —`c-004`
+(mismo universo equivocado), `c-011` (esta vez sin traer el listado) e `i-003` (volvió a
+publicar un número)— pese a haber pasado 1/1 en su remedición aislada. El agregado mejoró
+mucho igual, pero esto confirma lo que D-14 ya advertía: **una corrida prueba que un
+arreglo es posible, no que sea estable.** Ninguno de los cinco tiene Pass^3 real todavía.
+
+**Apareció una falsa ambigüedad nueva** en `c-015` (repreguntó donde la línea de base no
+lo hacía), que no estaba en ningún hallazgo anterior. Candidato sospechoso: la regla 7
+(cero disfrazado) puede haber vuelto al modelo más cauteloso en general. Sin confirmar,
+queda anotado para vigilar si se sigue iterando.
+
+**Se encontró y arregló un bug de costo real, ajeno a todo lo anterior:** `sample_values`
+no tenía tope ni en `limite` ni en el texto que arma para el modelo. Una corrida real pidió
+una columna de alta cardinalidad con un límite alto y el resultado, unido en una sola
+línea, llegó a **64 MB** — la API lo rechazó y la corrida completa (con 18 llamadas ya
+pagas) se perdió. Arreglado con el mismo tope que ya usa `run_sql` (`FILAS_QUE_VE_EL_MODELO
+= 50`).
+
+**Ablación, parcial.** Sólo se ablacionaron los 4 conceptos que el subconjunto reducido
+ejercitaba: `alerta_fuera_de_sla`, `riesgo_alto` y `cliente_onboardeado` sostienen solos
+(2/2 cada uno); **`misma_persona` no sostenía ni estando solo (0/2)** — confirma que su
+problema no era sólo el período, ya lo mostraba antes de encontrar el bug de `resultado`.
+Quedan sin ablacionar `hallazgo_real`, `monto_transado`, `pep_confirmado`,
+`caso_reportado` y `resolucion_de_casos`.
+
+**Qué queda pendiente para cerrar H5 de verdad:**
+- Pass^3 de los cinco arreglos (hoy sólo Pass^1).
+- Ablación de las 5 skills que faltan.
+- Correr `evals/questions_holdout.yaml` (6 preguntas, escritas y nunca corridas).
+- Confirmar o descartar la falsa ambigüedad nueva de `c-015`.
+- El DoD del plan (ambiguas/incontestables ≥ 90 % Pass^3, las 8 preguntas de referencia en
+  Pass^3) no está verificado — sólo hay Pass^1 parcial.
+
+**Costo total de la sesión: ~US$13,75.** Explorar modelos costó más que arreglar bugs.
+
+## D-19 · El gráfico es la forma de una respuesta que ya era una serie
+
+**Qué decidimos.** El campo `grafico` del contrato, reservado en H3 y en `null` desde
+entonces, se llena **sólo cuando la respuesta es una serie** —altas por mes, alertas por
+estado—. No es un adorno que se le agrega a una respuesta escalar: es la forma que toma
+una respuesta que ya venía siendo una serie, y por eso va **arriba, con la oración**, con
+su tabla desplegada debajo. Donde la respuesta es un número, no hay gráfico ni ofrecido.
+
+Esto reabre lo que [`web/PRODUCT.md`](web/PRODUCT.md) tenía en *fuera de alcance*, y ese
+archivo queda corregido.
+
+**Quién decide qué.**
+
+| Decisión | Quién |
+| --- | --- |
+| Si la respuesta es una serie, y qué columnas la forman (`x`, `y`, `unidad`) | El modelo |
+| Barras o línea | El sistema, por el tipo del valor de `x`: temporal → línea, cualquier otra cosa → barras |
+| Si el mapeo es dibujable | [`core/grafico.py`](core/grafico.py), determinístico: cualquier duda es `null` |
+| Los números | La base. El modelo no escribe ni uno |
+
+**El modelo escribe un mapeo, nunca un número.** `{x, y, unidad}` nombra columnas que la
+consulta ya devolvió; los `puntos` los copia el sistema de las filas que volvió Postgres.
+Inventar un punto no queda prohibido por una instrucción del prompt ni atrapado por un
+validador: queda **estructuralmente imposible**, que es la misma estrategia con la que se
+defiende D-04. `cifras_sin_respaldo` no necesita aprender a mirar el gráfico.
+
+**Y tampoco elige el tipo.** Nadie que publique su heurística deja esa decisión en el
+LLM: Metabase la deriva del tipo semántico de la columna del `Group by` —temporal →
+línea, categoría → barras— y Vanna pasó de que el modelo escribiera el gráfico entero a
+que la tool ni siquiera acepte un parámetro de tipo
+([`NOTES/06-graficos-en-la-industria.md`](NOTES/06-graficos-en-la-industria.md) §1.1). Como el gráfico no se califica,
+cada decisión que se le saca al modelo es una menos que nada mide.
+
+**El gráfico entero cabe en un módulo puro.** La baranda no vive en `agent/loop.py` sino
+en [`core/grafico.py`](core/grafico.py), por la misma razón por la que D-04 vive en
+`core/trazabilidad.py` y no en el loop: es una propiedad que se verifica sobre datos, se
+prueba sin API y sin Postgres, y no tiene por qué crecer adentro del ciclo de function
+calling. Del loop se tocan cuatro líneas.
+
+**Las seis reglas que lo hacen no mentir.**
+
+- **Sólo hay gráfico si las filas vinieron enteras.** `filas.muestra` son cinco sobre
+  `filas.total`: la tabla puede ser una muestra, el gráfico nunca. Doce barras tienen que
+  significar doce meses y no "los doce que entraron". Por eso los puntos viajan en
+  `grafico` y no se leen de `muestra`. Es un problema propio —nadie grafica sobre una
+  muestra— y la única fuente que al menos declara el truncado en su contrato es Genie, con
+  `query_result_metadata.is_truncated`.
+- **Barras y línea. Sin torta.** Una torta afirma que las partes son el todo, y acá casi
+  nunca lo son: están los dados de baja, los aprobados sin fecha de alta, lo pendiente y
+  lo revertido.
+- **Una sola unidad por serie, y la moneda nunca es el eje.** Es D-08 dibujado. Compartir
+  el eje de valores es sumar visualmente lo que los números no suman. La versión anterior
+  de esta regla pedía un panel por moneda, y estaba mal: si la única dimensión de la serie
+  *es* la moneda, un panel por moneda son cuatro paneles de una barra cada uno. Se descarta
+  una serie cuyo eje `x` son códigos de moneda, y también una donde **el valor horizontal
+  se repite**: si hay dos filas por mes, la serie está partida por otra dimensión —moneda,
+  sentido— y las barras apilarían unidades distintas. Esa segunda prueba reemplazó a una
+  anterior, "exactamente dos columnas", que sonaba equivalente y no lo era: en este sistema
+  lo normal es que el modelo devuelva los escalones de la cascada **y** la serie en una
+  sola consulta, porque `_lo_que_falta` le exige los escalones igual. La primera corrida
+  contra la API real la mató por eso, y no se descubrió con un test. Los paneles quedan
+  para cuando haya una serie que los pida de verdad.
+- **El eje de valores arranca siempre en cero.** Es la única forma de mentir que el mapeo
+  por columnas no previene: todos los números verdaderos y la conclusión falsa. Para
+  barras el consenso es unánime, y Vega-Lite lo fuerza ignorando la config; para líneas
+  está discutido, y acá igual se aplica.
+- **Tope de treinta puntos, y si se pasa no hay gráfico.** Doscientas barras no son un
+  gráfico, son una textura. Y "otros" queda prohibido: esa suma la haría el front y no una
+  consulta, que es D-04 dibujado.
+- **El gráfico cede ante la derivación.** Una respuesta con serie necesitaría dos
+  consultas —la cascada que `_lo_que_falta` exige con todos los escalones en una fila, y
+  la agrupada—, contra un tope de doce pasos y un gate que rechaza justo la forma agrupada.
+  Por eso el prompt es **pasivo**: no pide ninguna consulta de más, y el modelo sólo puede
+  declarar `grafico` sobre una serie que ya ejecutó por su cuenta. **El gráfico nunca puede
+  costar la respuesta.**
+
+**Qué cuesta.**
+
+- Agregar `grafico` al esquema estricto lo cambia para las 33 preguntas y no sólo para las
+  que grafican. Se revalidó con una corrida 33×1 al cerrar el hito —**US$4,12**— comparada
+  contra el cierre de H5 (D-17) y no contra la línea de base de D-14, que ya quedó atrás:
+  contestable **93 %** (venía de 80), ambigua 88 % y incontestable 90 % **sin cambio**, y
+  cero fugas cross-tenant. Los trece puntos de contestable no se cuentan como mérito de
+  este hito —es una corrida contra otra, y D-18 ya mostró que eso no prueba estabilidad—;
+  lo que la corrida sí prueba es que **no hubo regresión**, que era la pregunta.
+- Una librería, en un front que hoy no tiene ninguna dependencia visual: **visx**, la
+  única donde el peso escala con lo que se usa. Recharts eran 114 KB gzip por los mismos
+  dos tipos de gráfico, y su v3 no bajó respecto de la v2 (`NOTES/06-graficos-en-la-industria.md` §5).
+  **Medido en este bundle: 23 KB gzip** —66,1 → 89,1— con `scale`, `axis`, `shape` y
+  `group`, algo menos que los 27 que estimaba la investigación. Va la **v4**: la v3 no
+  declara React 19 como peer y npm se planta.
+- Lo que **no** cuesta: el seam. Una versión anterior de este ADR daba por hecho que
+  deducir barras o línea obligaba a que `Ok` llevara los tipos de columna de Postgres.
+  Alcanza con mirar el valor de Python antes de serializarlo, así que
+  `core/db/ejecucion.py` y sus tests quedan intactos.
+
+**Qué queda sin medir, dicho para que no aparezca después.** El gráfico **no se
+califica**: no hay assert sobre él en ninguna pregunta del set. Con la baranda, uno
+imposible no llega a la pantalla; uno innecesario sí, y va arriba de todo. En producción no
+lo evalúa nadie —LangSmith, Ragas, DeepEval, promptfoo, Genie y Cortex miden SQL o texto—,
+pero en investigación sí, y nvBench 2.0 abandonó *accuracy* por P/R/F1@K porque más del
+60 % de los casos son ambiguos: el mismo problema que ya ordena este repo.
+
+**Ninguna de las 33 preguntas del set produce hoy una serie dibujable.** Las de monto son
+desgloses por moneda, que es justo lo que la tercera regla prohíbe dibujar; "¿qué alertas
+están fuera del SLA?" y "mostrame los legajos repetidos" son listas y no series. La primera
+pregunta que enciende esto —`h-007`, altas por mes— va al **holdout**, para no mover un set
+oficial que ya tiene su medición de cierre.
+
+**Y una asimetría deliberada.** Si el oficial pide un gráfico para una pregunta que
+contesta con un número, recibe el número y **ningún comentario sobre el gráfico**. Es la
+única pieza de este ADR que va en contra de la postura del resto del sistema, que declara
+siempre lo que no puede.
+
+Lo que salió distinto al construirlo —dos reglas que sonaban bien y sólo se cayeron contra
+la API real— está en [`NOTES/07-graficos.md`](NOTES/07-graficos.md).
+
 
 ---
 

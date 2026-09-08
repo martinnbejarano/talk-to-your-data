@@ -288,10 +288,11 @@ total por moneda o por sentido).
 
 **Gráfico**:
 El dibujo de una serie, arriba y junto a la oración, con su tabla desplegada debajo.
-Existe **sólo donde hay serie** (D-16): una respuesta de un solo número no lleva gráfico
-ni lo ofrece. El agente nombra las columnas que lo forman y nunca sus valores, que se leen
-de las filas; si es de barras o de línea lo deduce el sistema del tipo de la columna
-horizontal.
+Existe **sólo donde hay serie** (D-19): una respuesta de un solo número no lleva gráfico
+ni lo ofrece, y **no toda serie se dibuja** — una cuya dimensión es la moneda, no, porque
+sería D-08 puesto en un eje. El agente nombra las columnas que lo forman y nunca sus
+valores, que los copia el sistema de las filas; si es de barras o de línea lo deduce el
+sistema del tipo de la columna horizontal.
 _Evitar_: visualización, chart, tablero, dashboard.
 
 **Historial**:
