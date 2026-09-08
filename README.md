@@ -9,6 +9,12 @@ con el parámetro que se aplicó, quién lo fijó y desde cuándo rige; cómo se
 número, escalón por escalón y con la proporción de cada uno; qué quedó afuera; y las
 filas reales.
 
+Cuando la respuesta no es un número sino varios —altas por mes, alertas por estado— se
+**dibuja**, arriba y junto a la oración, con su tabla desplegada debajo. Sólo ahí: una
+respuesta de un solo número no lleva gráfico ni lo ofrece, y un desglose por moneda
+tampoco, porque compartir un eje de valores sería sumar visualmente lo que los números no
+suman.
+
 Cuando la pregunta admite más de una lectura y la diferencia importa, **repregunta** con
 opciones en vez de elegir. Cuando elige, **lo declara arriba del número** y no plegado.
 Cuando la data no alcanza, **lo dice**: nunca disfraza un faltante de cero.

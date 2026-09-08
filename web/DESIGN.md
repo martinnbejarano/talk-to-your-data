@@ -323,6 +323,15 @@ Under each row runs a 2px proportional bar in accent at 0.72 opacity (full opaci
 
 **The 0.4% Floor Rule.** A nonzero value is drawn at `max(|n| / tope, 0.004)` — never smaller than 0.4% of the row. Without the floor, 660 against 180.000 renders as nothing and the eye reads "none" where there are 660. Zero is exempt and draws nothing: the floor exists for the small, not for the absent.
 
+### Series chart
+- **When it exists:** only when the answer is a series (D-19) — intakes by month, alerts by status, cases by outcome. A single-number answer never carries one and never offers one, so the chart is not a mode the screen can be put into; it is what a series-shaped answer looks like.
+- **Placement:** above, beside the answer sentence and below a declared assumption, which is a condition of that sentence and cannot be pushed away from it — never behind "Mostrar más" — with its own table expanded underneath. The drawing is for reading the shape; the figures are for defending the number to an auditor, and that is not done through a tooltip. The expanded table is also what makes the chart readable to a screen reader, so it is not an optional courtesy. It carries **no header row**: the only names available are the SQL column names the contract ships (`altas_del_periodo`), and the officer does not read SQL. The category is a `th scope="row"` instead, which keeps the table navigable without putting a technical word on screen — the same call the derivation ledger already makes for its own rows. What is being counted is said once, in prose, above the chart.
+- **Marks:** bars for a categorical x, a line for a temporal one, and the choice is derived from the value rather than chosen — a `date`, and also a `YYYY-MM` string, since that is what a `to_char` grouping actually returns. No pie: a pie asserts that the parts are the whole, and here they almost never are — there are the soft-deleted, the approved with no intake date, the pending and the reversed.
+- **Scale:** the value axis always starts at zero, bars and line alike. This is the one way a chart lies that a column mapping cannot prevent: every figure true and the conclusion false.
+- **Currency:** a series must carry a single unit throughout, or there is no chart. Never two currencies on one axis (D-08) — it is the same rule the ledger already obeys when it refuses to let a scale cross a unit change. Note that a per-currency breakdown is therefore a series that is never drawn: panelling it would give one panel per currency holding a single bar. Panels stay unbuilt until a series actually asks for them.
+- **Cardinality:** up to thirty points. Past that there is no chart, and the sentence says so. There is no "other" bucket: that sum would be computed in the front rather than by a query.
+- **Library:** visx v4 (`scale`, `axis`, `shape`, `group`) — SVG in React, so the existing CSS styles it and the marks stay DOM nodes, and its weight scales with what is imported. Measured at **23 KB gzip** in this bundle, against Recharts' 114 KB for the same two chart types. v4 and not v3: v3 does not declare React 19 as a peer. Not a canvas library. Its styles live in `src/grafico.css`, imported by the component, so `estilos.css` stays untouched.
+
 ### Live region
 Exactly one `aria-live="polite"` `role="status"` region exists in the entire document, visually hidden, in `App.jsx`. It carries the thinking notice, the failure notice, or the latest answer sentence. One region per turn was tried and failed twice over: opening a disclosure re-announced the whole answer, and the arrival of a new turn never announced at all, because a live region inserted together with its content does not fire. Any new announcement must be routed through this single region — do not add a second one.
 
@@ -338,6 +347,7 @@ Exactly one `aria-live="polite"` `role="status"` region exists in the entire doc
 - **Do** add every new pressable control to the `@media (pointer: coarse)` 44px block.
 - **Do** keep Inter. It is a deliberate canon commitment and a knowing override of the "overused font" finding, and it is what the digit-legibility rules are tuned against.
 - **Do** leave the answer sentence as the largest element in an answered turn.
+- **Do** start every chart's value axis at zero, and drop the chart entirely when the series carries more than one unit.
 - **Do** use white for things that can be acted on, and hairlines for everything structural.
 - **Do** honour `prefers-reduced-motion: reduce` — it is already wired to collapse every animation and transition, including the disclosure's grid animation.
 
@@ -347,6 +357,8 @@ Exactly one `aria-live="polite"` `role="status"` region exists in the entire doc
 - **Don't** put clarification options or a declared assumption behind "Mostrar más". Options are the answer; an assumption is a condition of the sentence above it.
 - **Don't** show the machine state name (`NO_SE_PUEDE_RESPONDER`, `NECESITO_QUE_ACLARES`) on screen. The state decides what is drawn; the officer sees the consequence, not the label.
 - **Don't** add cards or shadows. The composer's lift is the only elevation in the system.
+- **Don't** draw a chart for an answer that is a single number, and don't put one behind "Mostrar más" or leave its table folded.
+- **Don't** give a chart an "other" bucket, and don't draw one over `filas.muestra` — the table may be a sample, the chart never is. The chart's points travel in `grafico` for exactly this reason.
 - **Don't** introduce a second `aria-live` region, or per-turn live regions.
 - **Don't** add a second column, a sidebar, or a full-bleed surface outside `.columna`.
 - **Don't** add an icon library. The five 16px icons are drawn in `Iconos.jsx` on a shared 1.5 stroke; new icons match that spec.

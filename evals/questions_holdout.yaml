@@ -106,3 +106,25 @@ preguntas:
       Espejo de a-005 (banco_andino) en fintech_cuyo: la ambigüedad de D-13
       —vigentes contra históricos— sostenida en la institución que el set
       oficial no ejercita para esta clase.
+
+  # La única que no es un espejo, y la única que entró después de H5. Está acá y
+  # no en el set oficial para no mover una línea de base que ya tiene su medición
+  # de cierre (D-17). Es la primera pregunta del repo cuya respuesta es una serie
+  # y no un número: `exige_valor: false` porque el total anual sale de la
+  # derivación, no de `valor`. El gráfico **no se califica** (D-19); lo que esta
+  # pregunta custodia es que una serie no rompa la derivación.
+  - id: h-007
+    clase: serie_temporal
+    categoria: contestable
+    institucion: banco_andino
+    pregunta: "¿Cuántas altas de clientes hubo por mes este año?"
+    estado_esperado: [RESPONDIDA, RESPONDIDA_CON_SUPUESTO]
+    valor_esperado: {concepto: cliente_onboardeado}
+    exige_valor: false
+    exige_derivacion: true
+    debe_mencionar: [cliente_onboardeado]
+    detecta: >-
+      Que una respuesta con forma de serie siga trayendo los escalones de
+      `cliente_onboardeado` en la cascada, y que declare el supuesto de los
+      aprobados sin fecha de alta. La serie no reemplaza la derivación: la
+      acompaña.

@@ -26,6 +26,7 @@ from agent.tools import (
 from core import config
 from core.config import AS_OF
 from core.db.ejecucion import Fallo, Ok, Rechazada
+from core.grafico import CAMPO_DEL_CONTRATO, REGLA, grafico_de
 from core.trazabilidad import cifras_sin_respaldo
 
 # El prototipo midió 2 pasos hasta la consulta correcta y 5 en el peor caso de
@@ -105,6 +106,7 @@ fecha de corte y nunca contra el reloj.
    pregunta pide un período, verificá con `MIN`/`MAX` si ese período es
    anterior al primer registro de la tabla o posterior al `AS_OF`: en los dos
    casos la respuesta es `NO_SE_PUEDE_RESPONDER`, nunca un cero.
+{regla_del_grafico}
 
 ## Cómo contestás
 
@@ -143,8 +145,9 @@ cuándo rige. No inventes una fecha de vigencia: salen de `get_definition`.
 
 # El contrato, en el dialecto del proveedor. Va como esquema estricto y no como
 # pedido en el prompt porque un campo faltante rompería la pantalla, y eso no se
-# sostiene con una promesa. Los cuatro campos que el modelo NO escribe —`filas`,
-# `queries`, `grafico` y `traza_id`— los pone el loop.
+# sostiene con una promesa. Los tres campos que el modelo NO escribe —`filas`,
+# `queries` y `traza_id`— los pone el loop. `grafico` es el único mixto: el modelo
+# nombra columnas y el loop copia los números (D-19, `core/grafico.py`).
 CONTRATO = {
     "type": "object",
     "additionalProperties": False,
@@ -157,6 +160,7 @@ CONTRATO = {
         "exclusiones",
         "supuestos",
         "opciones",
+        "grafico",
     ],
     "properties": {
         "estado": {
@@ -205,6 +209,7 @@ CONTRATO = {
             },
         },
         "exclusiones": {"type": "array", "items": {"type": "string"}},
+        "grafico": CAMPO_DEL_CONTRATO,
         "supuestos": {"type": "array", "items": {"type": "string"}},
         "opciones": {
             "type": "array",
@@ -230,6 +235,7 @@ def responder(pregunta: str, institucion_id: int, historial: list[dict] | None =
     instrucciones = SISTEMA.format(
         institucion_id=institucion_id,
         as_of=AS_OF,
+        regla_del_grafico=REGLA,
         conceptos=catalogo_de_conceptos(),
         esquema=esquema_con_indices(institucion_id),
     )
@@ -417,12 +423,18 @@ def _lo_que_falta(
 
 
 def _completar(contrato: dict, ejecutadas: list[tuple[str, Ok]]) -> dict:
-    """Los cuatro campos que pone el sistema y no el modelo. `grafico` va siempre
-    en `null`: dejar el hueco cuesta nada y agregarlo después cambia el contrato.
+    """Los campos que pone el sistema y no el modelo.
+
+    `grafico` es el mixto: entra como el mapeo de columnas que escribió el modelo y
+    sale como el gráfico con sus puntos, o en `null` si no era dibujable. Las filas
+    van enteras y no desde `filas.muestra`, que son cinco: una tabla puede ser una
+    muestra, un gráfico no (D-19).
     """
     contrato["filas"] = _filas(ejecutadas)
     contrato["queries"] = [{"sql": sql, "plan": ok.plan, "ms": ok.ms} for sql, ok in ejecutadas]
-    contrato["grafico"] = None
+    contrato["grafico"] = grafico_de(
+        contrato.get("grafico"), [(ok.columnas, ok.filas) for _, ok in ejecutadas]
+    )
     contrato["traza_id"] = f"tz_{uuid.uuid4()}"
     return contrato
 

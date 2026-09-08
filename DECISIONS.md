@@ -400,6 +400,124 @@ Quedan sin ablacionar `hallazgo_real`, `monto_transado`, `pep_confirmado`,
 
 **Costo total de la sesión: ~US$13,75.** Explorar modelos costó más que arreglar bugs.
 
+## D-19 · El gráfico es la forma de una respuesta que ya era una serie
+
+**Qué decidimos.** El campo `grafico` del contrato, reservado en H3 y en `null` desde
+entonces, se llena **sólo cuando la respuesta es una serie** —altas por mes, alertas por
+estado—. No es un adorno que se le agrega a una respuesta escalar: es la forma que toma
+una respuesta que ya venía siendo una serie, y por eso va **arriba, con la oración**, con
+su tabla desplegada debajo. Donde la respuesta es un número, no hay gráfico ni ofrecido.
+
+Esto reabre lo que [`web/PRODUCT.md`](web/PRODUCT.md) tenía en *fuera de alcance*, y ese
+archivo queda corregido.
+
+**Quién decide qué.**
+
+| Decisión | Quién |
+| --- | --- |
+| Si la respuesta es una serie, y qué columnas la forman (`x`, `y`, `unidad`) | El modelo |
+| Barras o línea | El sistema, por el tipo del valor de `x`: temporal → línea, cualquier otra cosa → barras |
+| Si el mapeo es dibujable | [`core/grafico.py`](core/grafico.py), determinístico: cualquier duda es `null` |
+| Los números | La base. El modelo no escribe ni uno |
+
+**El modelo escribe un mapeo, nunca un número.** `{x, y, unidad}` nombra columnas que la
+consulta ya devolvió; los `puntos` los copia el sistema de las filas que volvió Postgres.
+Inventar un punto no queda prohibido por una instrucción del prompt ni atrapado por un
+validador: queda **estructuralmente imposible**, que es la misma estrategia con la que se
+defiende D-04. `cifras_sin_respaldo` no necesita aprender a mirar el gráfico.
+
+**Y tampoco elige el tipo.** Nadie que publique su heurística deja esa decisión en el
+LLM: Metabase la deriva del tipo semántico de la columna del `Group by` —temporal →
+línea, categoría → barras— y Vanna pasó de que el modelo escribiera el gráfico entero a
+que la tool ni siquiera acepte un parámetro de tipo
+([`NOTES/06-graficos-en-la-industria.md`](NOTES/06-graficos-en-la-industria.md) §1.1). Como el gráfico no se califica,
+cada decisión que se le saca al modelo es una menos que nada mide.
+
+**El gráfico entero cabe en un módulo puro.** La baranda no vive en `agent/loop.py` sino
+en [`core/grafico.py`](core/grafico.py), por la misma razón por la que D-04 vive en
+`core/trazabilidad.py` y no en el loop: es una propiedad que se verifica sobre datos, se
+prueba sin API y sin Postgres, y no tiene por qué crecer adentro del ciclo de function
+calling. Del loop se tocan cuatro líneas.
+
+**Las seis reglas que lo hacen no mentir.**
+
+- **Sólo hay gráfico si las filas vinieron enteras.** `filas.muestra` son cinco sobre
+  `filas.total`: la tabla puede ser una muestra, el gráfico nunca. Doce barras tienen que
+  significar doce meses y no "los doce que entraron". Por eso los puntos viajan en
+  `grafico` y no se leen de `muestra`. Es un problema propio —nadie grafica sobre una
+  muestra— y la única fuente que al menos declara el truncado en su contrato es Genie, con
+  `query_result_metadata.is_truncated`.
+- **Barras y línea. Sin torta.** Una torta afirma que las partes son el todo, y acá casi
+  nunca lo son: están los dados de baja, los aprobados sin fecha de alta, lo pendiente y
+  lo revertido.
+- **Una sola unidad por serie, y la moneda nunca es el eje.** Es D-08 dibujado. Compartir
+  el eje de valores es sumar visualmente lo que los números no suman. La versión anterior
+  de esta regla pedía un panel por moneda, y estaba mal: si la única dimensión de la serie
+  *es* la moneda, un panel por moneda son cuatro paneles de una barra cada uno. Se descarta
+  una serie cuyo eje `x` son códigos de moneda, y también una donde **el valor horizontal
+  se repite**: si hay dos filas por mes, la serie está partida por otra dimensión —moneda,
+  sentido— y las barras apilarían unidades distintas. Esa segunda prueba reemplazó a una
+  anterior, "exactamente dos columnas", que sonaba equivalente y no lo era: en este sistema
+  lo normal es que el modelo devuelva los escalones de la cascada **y** la serie en una
+  sola consulta, porque `_lo_que_falta` le exige los escalones igual. La primera corrida
+  contra la API real la mató por eso, y no se descubrió con un test. Los paneles quedan
+  para cuando haya una serie que los pida de verdad.
+- **El eje de valores arranca siempre en cero.** Es la única forma de mentir que el mapeo
+  por columnas no previene: todos los números verdaderos y la conclusión falsa. Para
+  barras el consenso es unánime, y Vega-Lite lo fuerza ignorando la config; para líneas
+  está discutido, y acá igual se aplica.
+- **Tope de treinta puntos, y si se pasa no hay gráfico.** Doscientas barras no son un
+  gráfico, son una textura. Y "otros" queda prohibido: esa suma la haría el front y no una
+  consulta, que es D-04 dibujado.
+- **El gráfico cede ante la derivación.** Una respuesta con serie necesitaría dos
+  consultas —la cascada que `_lo_que_falta` exige con todos los escalones en una fila, y
+  la agrupada—, contra un tope de doce pasos y un gate que rechaza justo la forma agrupada.
+  Por eso el prompt es **pasivo**: no pide ninguna consulta de más, y el modelo sólo puede
+  declarar `grafico` sobre una serie que ya ejecutó por su cuenta. **El gráfico nunca puede
+  costar la respuesta.**
+
+**Qué cuesta.**
+
+- Agregar `grafico` al esquema estricto lo cambia para las 33 preguntas y no sólo para las
+  que grafican. Se revalidó con una corrida 33×1 al cerrar el hito —**US$4,12**— comparada
+  contra el cierre de H5 (D-17) y no contra la línea de base de D-14, que ya quedó atrás:
+  contestable **93 %** (venía de 80), ambigua 88 % y incontestable 90 % **sin cambio**, y
+  cero fugas cross-tenant. Los trece puntos de contestable no se cuentan como mérito de
+  este hito —es una corrida contra otra, y D-18 ya mostró que eso no prueba estabilidad—;
+  lo que la corrida sí prueba es que **no hubo regresión**, que era la pregunta.
+- Una librería, en un front que hoy no tiene ninguna dependencia visual: **visx**, la
+  única donde el peso escala con lo que se usa. Recharts eran 114 KB gzip por los mismos
+  dos tipos de gráfico, y su v3 no bajó respecto de la v2 (`NOTES/06-graficos-en-la-industria.md` §5).
+  **Medido en este bundle: 23 KB gzip** —66,1 → 89,1— con `scale`, `axis`, `shape` y
+  `group`, algo menos que los 27 que estimaba la investigación. Va la **v4**: la v3 no
+  declara React 19 como peer y npm se planta.
+- Lo que **no** cuesta: el seam. Una versión anterior de este ADR daba por hecho que
+  deducir barras o línea obligaba a que `Ok` llevara los tipos de columna de Postgres.
+  Alcanza con mirar el valor de Python antes de serializarlo, así que
+  `core/db/ejecucion.py` y sus tests quedan intactos.
+
+**Qué queda sin medir, dicho para que no aparezca después.** El gráfico **no se
+califica**: no hay assert sobre él en ninguna pregunta del set. Con la baranda, uno
+imposible no llega a la pantalla; uno innecesario sí, y va arriba de todo. En producción no
+lo evalúa nadie —LangSmith, Ragas, DeepEval, promptfoo, Genie y Cortex miden SQL o texto—,
+pero en investigación sí, y nvBench 2.0 abandonó *accuracy* por P/R/F1@K porque más del
+60 % de los casos son ambiguos: el mismo problema que ya ordena este repo.
+
+**Ninguna de las 33 preguntas del set produce hoy una serie dibujable.** Las de monto son
+desgloses por moneda, que es justo lo que la tercera regla prohíbe dibujar; "¿qué alertas
+están fuera del SLA?" y "mostrame los legajos repetidos" son listas y no series. La primera
+pregunta que enciende esto —`h-007`, altas por mes— va al **holdout**, para no mover un set
+oficial que ya tiene su medición de cierre.
+
+**Y una asimetría deliberada.** Si el oficial pide un gráfico para una pregunta que
+contesta con un número, recibe el número y **ningún comentario sobre el gráfico**. Es la
+única pieza de este ADR que va en contra de la postura del resto del sistema, que declara
+siempre lo que no puede.
+
+Lo que salió distinto al construirlo —dos reglas que sonaban bien y sólo se cayeron contra
+la API real— está en [`NOTES/07-graficos.md`](NOTES/07-graficos.md).
+
+
 ---
 
 ## Trampas del dataset

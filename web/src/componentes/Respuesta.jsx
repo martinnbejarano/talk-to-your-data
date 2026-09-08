@@ -4,6 +4,7 @@ import { Definicion } from "./Definicion.jsx";
 import { Derivacion } from "./Derivacion.jsx";
 import { Exclusiones } from "./Exclusiones.jsx";
 import { Filas } from "./Filas.jsx";
+import { Grafico } from "./Grafico.jsx";
 import { Opciones, Supuesto, SinNumero } from "./BloqueDeEstado.jsx";
 import { Chevron } from "./Iconos.jsx";
 import { numero } from "../formato.js";
@@ -37,6 +38,11 @@ export function Respuesta({ contrato, alElegirOpcion, bloqueado }) {
       {/* El supuesto no está detrás de ningún botón: es una condición de la
           oración de arriba, no un detalle de respaldo. */}
       <Supuesto supuestos={contrato.supuestos} />
+
+      {/* Fuera de la gaveta y después del supuesto (D-19): hay gráfico sólo donde
+          la respuesta ya era una serie, y el supuesto es una condición de la
+          oración de arriba que no se puede separar de ella. */}
+      <Grafico grafico={contrato.grafico} />
 
       {contrato.estado === "NO_SE_PUEDE_RESPONDER" && <SinNumero />}
 

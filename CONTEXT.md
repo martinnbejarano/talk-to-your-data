@@ -278,6 +278,23 @@ es un término de este glosario y "criterio" está en el _evitar_ de **definici�
 porqué está en el ADR.
 _Evitar_: nivel de confianza, porcentaje, score de certeza (D-05).
 
+**Serie**:
+Una respuesta que no es un número sino varios, uno por cada valor de una dimensión: altas
+por mes, monto por moneda, alertas por estado. Es una **forma de respuesta y no un tipo de
+pregunta**: lo que la vuelve serie es que la consulta devolvió una fila por categoría en
+vez de una sola.
+_Evitar_: dataset, distribución, agrupación, breakdown (que ya nombra otra cosa: partir un
+total por moneda o por sentido).
+
+**Gráfico**:
+El dibujo de una serie, arriba y junto a la oración, con su tabla desplegada debajo.
+Existe **sólo donde hay serie** (D-19): una respuesta de un solo número no lleva gráfico
+ni lo ofrece, y **no toda serie se dibuja** — una cuya dimensión es la moneda, no, porque
+sería D-08 puesto en un eje. El agente nombra las columnas que lo forman y nunca sus
+valores, que los copia el sistema de las filas; si es de barras o de línea lo deduce el
+sistema del tipo de la columna horizontal.
+_Evitar_: visualización, chart, tablero, dashboard.
+
 **Historial**:
 Los turnos previos de la conversación. Viaja en cada pregunta porque el servidor no
 guarda sesiones, y es lo que cierra una repregunta: la opción que el oficial eligió

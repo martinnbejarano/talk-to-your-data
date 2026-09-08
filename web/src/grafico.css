@@ -1,0 +1,68 @@
+/* Los estilos del gráfico viven acá y no en `estilos.css`: son de un componente
+   que no existía y que se puede sacar entero sin tocar el resto de la pantalla.
+   Los tokens son los mismos —no hay ningún color nuevo—, y `.tabla-wrap` se
+   reusa tal cual de la tabla de filas. */
+
+.grafico {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--linea);
+}
+
+.grafico .unidad {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--tinta-3);
+}
+
+/* Sin `overflow: visible`: si algo se sale del `viewBox` tiene que recortarse y no
+   sangrar la columna, que es la única medida fija de esta pantalla. */
+.grafico svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* El acento marca proporción dibujada, que es exactamente para lo que ya se usa
+   en la cascada de la derivación. No es decoración. */
+.grafico .marca {
+  fill: var(--acento);
+  fill-opacity: 0.82;
+}
+
+.grafico .marca.trazo {
+  fill: none;
+  stroke: var(--acento);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+/* visx dibuja los ejes con sus propias clases; acá sólo se les pone la tipografía
+   y los grises de la casa. */
+.grafico .visx-axis-left .visx-axis-tick text,
+.grafico .visx-axis-bottom .visx-axis-tick text {
+  font-family: var(--sans);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  fill: var(--tinta-3);
+}
+
+.grafico .visx-axis-left .visx-axis-tick line,
+.grafico .visx-axis-bottom .visx-axis-tick line,
+.grafico .visx-axis-bottom .visx-axis-line {
+  stroke: var(--linea-fuerte);
+}
+
+/* La tabla no se pliega. El dibujo sirve para ver la forma; los números son para
+   defenderlos ante un auditor, y eso no se hace abriendo un desplegable. */
+.grafico .tabla-wrap {
+  margin-top: 14px;
+}
+/* El `th` de fila es la categoría y no un encabezado de tabla: existe para el
+   lector de pantalla, así que se pinta como una celda más. */
+.grafico th[scope="row"] {
+  background: none;
+  color: var(--tinta-2);
+  width: 50%;
+}
