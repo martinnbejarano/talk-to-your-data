@@ -81,13 +81,14 @@ decisión con sentido, un "87 %" no significa nada accionable.
 ## Capabilities and Constraints
 
 **Lo que hay hoy** (React 19 + Vite, sin router ni librería de UI; una sola
-pantalla): selector de institución, caja de pregunta, estado de espera con
-contador, y los turnos apilados como conversación. Cada respuesta se lee como
-**una sola oración**; el supuesto y las opciones de repregunta van con ella,
-sin plegar. Detrás de un único botón, **Mostrar más**, y en este orden: qué se
-contó con la procedencia del parámetro, cómo se llegó al número con una escala
-proporcional por tramo, qué quedó afuera, y las filas de la consulta un nivel
-más adentro.
+pantalla): selector de institución, caja de pregunta con tres sugerencias —dos
+de ellas contestan con una serie, para que el gráfico se descubra sin adivinar
+qué preguntar—, estado de espera con contador, y los turnos apilados como
+conversación. Cada respuesta se lee como **una sola oración**; el supuesto y las
+opciones de repregunta van con ella, sin plegar. Detrás de un único botón,
+**Mostrar más**, y en este orden: qué se contó con la procedencia del parámetro,
+cómo se llegó al número con una escala proporcional por tramo, qué quedó afuera,
+y las filas de la consulta un nivel más adentro.
 
 **El contrato manda.** El front dibuja campo por campo lo que devuelve `POST
 /ask` y **nunca parsea el texto libre del modelo**. Campos: `estado`, `valor`,

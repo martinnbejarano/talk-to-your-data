@@ -10,6 +10,17 @@ import { Alerta, Flecha } from "./componentes/Iconos.jsx";
 // conocido —7.859 en Banco Andino, 321 en Fintech Cuyo—.
 const PREGUNTA_DE_REFERENCIA = "¿Cuántos clientes de riesgo alto tenemos?";
 
+// La de referencia va primera: es la canónica del README y del eval, y su número
+// —7.859 en Banco Andino— está verificado a mano. Las otras dos están elegidas
+// porque **contestan con una serie**, que es lo único que se dibuja (D-19): sin
+// una de ellas a mano, un oficial puede usar la pantalla entera sin enterarse de
+// que hay gráficos.
+const PARA_EMPEZAR = [
+  PREGUNTA_DE_REFERENCIA,
+  "¿Cuántos casos reportamos a la UIF por mes este año?",
+  "¿Cuántos clientes onboardeamos por mes este año?",
+];
+
 export function App() {
   const [instituciones, setInstituciones] = useState([]);
   const [institucionId, setInstitucionId] = useState(null);
@@ -111,7 +122,7 @@ export function App() {
           {vacio && (
             <Vacio
               arranque={arranque}
-              alSugerir={() => mandar(PREGUNTA_DE_REFERENCIA, [])}
+              alSugerir={(pregunta) => mandar(pregunta, [])}
               bloqueado={institucionId === null}
             />
           )}
@@ -188,9 +199,19 @@ function Vacio({ arranque, alSugerir, bloqueado }) {
       </p>
       <div className="sugerencia">
         <span>Para empezar</span>
-        <button type="button" className="opcion" disabled={bloqueado} onClick={alSugerir}>
-          <span className="titulo">{PREGUNTA_DE_REFERENCIA}</span>
-        </button>
+        <div className="pastillas">
+          {PARA_EMPEZAR.map((pregunta) => (
+            <button
+              key={pregunta}
+              type="button"
+              className="opcion"
+              disabled={bloqueado}
+              onClick={() => alSugerir(pregunta)}
+            >
+              <span className="titulo">{pregunta}</span>
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

@@ -220,7 +220,7 @@ A near-monochrome paper palette with one indigo accent and three narrow semantic
 - **Title** (600, 13.5px, ink-secondary): section headings inside the disclosure ("Qué se contó", "Cómo se llegó a…"). Deliberately smaller than the body text they introduce: they are wayfinding for an auditor scanning, not content.
 - **Body** (400, 15px/1.55): the composer, the asked question, options, the empty state's paragraph.
 - **Secondary** (400, 14px/1.5): notice blocks, ledger step labels and figures, definitions, exclusions.
-- **Label** (400, 12.5–13px, ink-tertiary): deltas, glosses, unit captions, the composer footnote, the trace line.
+- **Label** (400, 12.5–13px, ink-tertiary): deltas, glosses, unit captions, chart axis ticks, the composer footnote, the trace line.
 - **Mono** (400, 12px): trace ids and raw error strings only.
 
 ### Named Rules
@@ -261,7 +261,7 @@ The system is flat. Depth is carried by hairlines, by the paper/white ground spl
 
 ## Shapes
 
-A soft-rectangular language on a tight radius ladder, scaled to the element's size rather than to a style tier: 4px for the focus ring and inline code, 6px for the institution select, 7px for quiet buttons, 8px for notices, options, the provenance strip and the rows-table wrapper, 9px for the square send button, 14px for the composer, 16px for the asked-question bubble, and a full pill (999px) for the empty state's suggestion chip — the one place a control is meant to read as an invitation rather than a field.
+A soft-rectangular language on a tight radius ladder, scaled to the element's size rather than to a style tier: 4px for the focus ring and inline code, 6px for the institution select, 7px for quiet buttons, 8px for notices, options, the provenance strip and the rows-table wrapper, 9px for the square send button, 14px for the composer, 16px for the asked-question bubble, and a full pill (999px) for the empty state's suggestion chips — the one place a control is meant to read as an invitation rather than a field.
 
 Borders are 1px and hairline-coloured; the only thicker rule in the system is the 2px ink line above a ledger result row, which is the accounting convention for a total and reads as such. Icons are five hand-drawn 16px SVGs on a shared 1.5 stroke with round caps and joins, inheriting `currentColor` — no icon font, no icon package, no glyph characters.
 
@@ -285,7 +285,9 @@ Borders are 1px and hairline-coloured; the only thicker rule in the system is th
 - **Expanded** (`aria-expanded="true"`): fills grey-strip, text to ink, and the caret rotates 180° over 240ms on the system easing.
 
 ### Chips
-- **Suggestion chip:** the empty state's single suggested question — pill radius, white, 8px/16px, 14px ink-tertiary text going to ink on hover. It reuses the option's border and hover treatment, so the first thing a new user clicks teaches the affordance for every clarification option they will meet later.
+- **Suggestion chips:** the empty state's three suggested questions, **stacked one per line**, each hugging its own text — pill radius, white, 8px/16px, 14px ink-secondary text going to ink on hover. They reuse the option's border and hover treatment, so the first thing a new user clicks teaches the affordance for every clarification option they will meet later. The first is the reference question, whose figure is hand-verified; **the other two answer with a series**, because without one at hand an officer can use the whole screen without discovering that charts exist.
+
+  **The stack is the rule, not a fallback.** Laid out as a wrapping row, three questions of similar length leave the third orphaned on its own line and the block changes shape with the viewport. Stacked, it is identical on a desktop and a phone, and it already reads like the `.opciones` column it exists to teach. Below roughly 320px of column the text wraps and the chips go full-width on their own — the same shape reached from the other side.
 
 ### Options (clarification answers)
 - **Style:** Full-width white rows, 8px radius, hairline-strong border, 11px/14px padding, question text baseline-aligned left against an optional tabular count right.

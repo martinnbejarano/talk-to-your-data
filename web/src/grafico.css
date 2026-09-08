@@ -43,7 +43,7 @@
 .grafico .visx-axis-left .visx-axis-tick text,
 .grafico .visx-axis-bottom .visx-axis-tick text {
   font-family: var(--sans);
-  font-size: 11px;
+  font-size: 12.5px;
   font-variant-numeric: tabular-nums;
   fill: var(--tinta-3);
 }

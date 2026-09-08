@@ -757,13 +757,28 @@ body {
   text-wrap: pretty;
 }
 .sugerencia {
-  margin-top: 20px;
+  margin-top: 28px;
 }
-.sugerencia span {
+/* Hijo directo: sin el `>` esto alcanzaba también al rótulo de cada pastilla,
+   que quedaba en 12,5px tinta-3 y con 8px de margen fantasma abajo — el texto
+   se veía chico, pálido y 4px por encima del centro de su propio botón. */
+.sugerencia > span {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
   font-size: 12.5px;
   color: var(--tinta-3);
+}
+/* Una por renglón, y cada una del ancho de su texto. En fila envuelven mal —con
+   tres preguntas de largo parecido, la tercera siempre queda sola abajo— y la
+   pantalla cambia de forma según el ancho. Apiladas son iguales en el escritorio
+   y en el teléfono, y repiten la forma de `.opciones`, que es exactamente lo que
+   esta pastilla existe para enseñar: lo primero que se clickea es igual a la
+   repregunta que se va a encontrar después. */
+.sugerencia .pastillas {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
 }
 .sugerencia .opcion {
   width: auto;
