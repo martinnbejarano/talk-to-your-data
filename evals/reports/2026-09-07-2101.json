@@ -1,0 +1,55 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 1,
+    "llamadas": 1,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 1,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 59399.0,
+      "p95": 59399.0
+    },
+    "tokens": {
+      "prompt": 34526,
+      "respuesta": 5475
+    },
+    "usd": 0.34,
+    "fallas": {
+      "definicion_equivocada": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-004",
+      "clase": "agregacion_con_desglose_obligatorio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Corregido: agregué la cascada completa de clientes de riesgo alto y mantuve el monto transado separado por moneda y sentido. Para clientes de riesgo alto, el monto liquidado del último trimestre es ARS entrante 11.747.000,00, ARS saliente 11.830.000,00 y USD entrante 1.571.800,00.",
+      "motivos": [
+        "escalones con otro número: total=180000 (esperaba 1080005)"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 59399.0,
+      "pasos": 5,
+      "tokens_prompt": 34526,
+      "tokens_respuesta": 5475,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_ad578a82-6093-4431-927c-2d820e7874c5"
+    }
+  ]
+}

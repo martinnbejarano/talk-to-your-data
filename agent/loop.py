@@ -65,8 +65,10 @@ oficial de cumplimiento: no es técnico, no lee SQL, y necesita poder explicarle
 a un auditor de dónde salió cada número que le mostrás.
 
 Trabajás para la institución {institucion_id} y para ninguna otra. Si la
-pregunta nombra otra institución, contestá igual sobre la del selector —es la
-única a la que este oficial tiene acceso— y declaralo como supuesto.
+pregunta nombra o compara con otra institución, la respuesta es
+`NO_SE_PUEDE_RESPONDER`: este oficial no tiene acceso a esos datos, y contestar
+con el número de tu institución como si fuera lo pedido es peor que negarte,
+aunque el número en sí sea correcto.
 
 Hoy es {as_of}. "Hoy", "este año" y "último trimestre" se interpretan contra esa
 fecha de corte y nunca contra el reloj.
@@ -88,9 +90,21 @@ fecha de corte y nunca contra el reloj.
 5. La derivación es la explicación principal y no un anexo: tu consulta tiene
    que devolver TODOS los escalones que la definición declara, como columnas de
    una sola fila. Si el gate te rechaza el plan, reescribí la consulta pero
-   seguí devolviendo esas mismas columnas.
+   seguí devolviendo esas mismas columnas. El texto del **primer** escalón dice
+   de qué tabla sale `total`: no lo reemplaces por la tabla del sujeto de la
+   pregunta si son distintas. "Monto transado por los clientes de riesgo alto"
+   arranca de transacciones, no de clientes, aunque la pregunta hable de
+   clientes.
 6. El `n` de cada escalón se lee de esa fila. Restar dos escalones para
    completar un tercero es exactamente lo que prohíbe la regla 1.
+7. Un cero que devuelve la base no siempre significa "no hay nada": puede
+   significar "no hay dato para este recorte". Antes de publicar un cero,
+   verificá el motivo con una consulta: si la pregunta pide un catálogo de
+   opciones (listas, categorías) y sólo alguna de ellas aparece en los
+   resultados, las que no aparecen no están ausentes, son sin dato. Si la
+   pregunta pide un período, verificá con `MIN`/`MAX` si ese período es
+   anterior al primer registro de la tabla o posterior al `AS_OF`: en los dos
+   casos la respuesta es `NO_SE_PUEDE_RESPONDER`, nunca un cero.
 
 ## Cómo contestás
 
@@ -99,7 +113,11 @@ nunca lee texto libre. El nombre del estado no se le muestra nunca al oficial.
 
 - `RESPONDIDA`: tenés el número y no hubo que elegir nada.
 - `RESPONDIDA_CON_SUPUESTO`: la pregunta admitía más de una lectura, elegiste
-  una, y la declarás en `supuestos` diciendo qué implicó.
+  una, y la declarás en `supuestos` diciendo qué implicó. También es este
+  estado —no `NO_SE_PUEDE_RESPONDER`— cuando la propia definición dice que la
+  respuesta correcta es un desglose y no un número único: ahí `valor` va en
+  `null`, la derivación trae el desglose, y lo declarás en `supuestos`. Los
+  datos alcanzan; lo que no existe es un total que tenga sentido.
 - `NECESITO_QUE_ACLARES`: hay dos lecturas razonables y la diferencia importa.
   Van en `opciones`, y con su `n` sólo si ejecutaste las dos consultas.
 - `NO_SE_PUEDE_RESPONDER`: los datos no alcanzan. Decí qué falta; nunca lo
@@ -209,19 +227,27 @@ def responder(pregunta: str, institucion_id: int, historial: list[dict] | None =
     el servidor no guarda sesiones. Es también la puerta por la que mide el
     runner de evals, y no por HTTP, para que no mida una copia del sistema.
     """
-    mensajes = _mensajes_iniciales(pregunta, institucion_id, historial)
+    instrucciones = SISTEMA.format(
+        institucion_id=institucion_id,
+        as_of=AS_OF,
+        conceptos=catalogo_de_conceptos(),
+        esquema=esquema_con_indices(institucion_id),
+    )
+    mensajes = _mensajes_iniciales(pregunta, historial)
     ejecutadas: list[tuple[str, Ok]] = []
     leidas: dict[str, dict[str, str]] = {}
     ya_le_reclamamos = False
     traza = _Traza(pregunta, institucion_id)
 
     for _ in range(TOPE_DE_PASOS):
-        mensaje, tokens = _le_preguntamos_al_modelo(mensajes)
+        respuesta, tokens = _le_preguntamos_al_modelo(mensajes, instrucciones)
         traza.abrir_paso(tokens)
-        mensajes.append(mensaje.model_dump(exclude_none=True))
+        mensajes += [item.model_dump(exclude_none=True) for item in respuesta.output]
 
-        if not mensaje.tool_calls:
-            contrato = _contrato_de(mensaje)
+        llamadas = [item for item in respuesta.output if item.type == "function_call"]
+
+        if not llamadas:
+            contrato = _contrato_de(respuesta)
             if not (falta := _lo_que_falta(contrato, leidas, ejecutadas)):
                 return traza.guardar(_completar(contrato, ejecutadas))
             if ya_le_reclamamos:
@@ -230,7 +256,7 @@ def responder(pregunta: str, institucion_id: int, historial: list[dict] | None =
             ya_le_reclamamos = True
             continue
 
-        for llamada in mensaje.tool_calls:
+        for llamada in llamadas:
             nombre, argumentos, resultado = _correr(llamada, institucion_id)
             traza.anotar_tool(nombre, argumentos, resultado)
             # Lo único que el loop se queda de una tool, para verificar el
@@ -241,9 +267,9 @@ def responder(pregunta: str, institucion_id: int, historial: list[dict] | None =
                 leidas[argumentos["concepto"]] = escalones
             mensajes.append(
                 {
-                    "role": "tool",
-                    "tool_call_id": llamada.id,
-                    "content": texto_para_el_modelo(resultado),
+                    "type": "function_call_output",
+                    "call_id": llamada.call_id,
+                    "output": texto_para_el_modelo(resultado),
                 }
             )
 
@@ -258,20 +284,28 @@ def _cliente() -> OpenAI:
     return OpenAI(api_key=config.openai_api_key())
 
 
-def _le_preguntamos_al_modelo(mensajes: list[dict]):
-    """Devuelve el mensaje y lo que costó. Los tokens salen del proveedor y no de
+def _le_preguntamos_al_modelo(mensajes: list[dict], instrucciones: str):
+    """Devuelve la respuesta y lo que costó. Los tokens salen del proveedor y no de
     una estimación sobre el texto: el único que sabe cuánto se facturó es él.
+
+    Va por `/v1/responses` y no por `/v1/chat/completions`: los modelos gpt-5.6
+    no soportan tool calling con razonamiento en el endpoint viejo (H5).
     """
-    respuesta = _cliente().chat.completions.create(
+    respuesta = _cliente().responses.create(
         model=config.modelo(),
-        messages=mensajes,
+        instructions=instrucciones,
+        input=mensajes,
         tools=ESPECIFICACIONES,
-        response_format={
-            "type": "json_schema",
-            "json_schema": {"name": "contrato", "strict": True, "schema": CONTRATO},
+        text={
+            "format": {
+                "type": "json_schema",
+                "name": "contrato",
+                "strict": True,
+                "schema": CONTRATO,
+            }
         },
     )
-    return respuesta.choices[0].message, _tokens(respuesta.usage)
+    return respuesta, _tokens(respuesta.usage)
 
 
 def _tokens(usage) -> dict:
@@ -281,29 +315,20 @@ def _tokens(usage) -> dict:
     if usage is None:
         return {"prompt": 0, "respuesta": 0, "total": 0}
     return {
-        "prompt": usage.prompt_tokens,
-        "respuesta": usage.completion_tokens,
+        "prompt": usage.input_tokens,
+        "respuesta": usage.output_tokens,
         "total": usage.total_tokens,
     }
 
 
-def _mensajes_iniciales(
-    pregunta: str, institucion_id: int, historial: list[dict] | None
-) -> list[dict]:
+def _mensajes_iniciales(pregunta: str, historial: list[dict] | None) -> list[dict]:
     """El historial entra como turnos y no como un resumen: para entender qué
     opción eligió el oficial, el modelo necesita ver qué había ofrecido.
+
+    El prompt de sistema no va acá: viaja aparte como `instructions` en cada
+    llamada, que es el lugar que le da `/v1/responses`.
     """
-    mensajes = [
-        {
-            "role": "system",
-            "content": SISTEMA.format(
-                institucion_id=institucion_id,
-                as_of=AS_OF,
-                conceptos=catalogo_de_conceptos(),
-                esquema=esquema_con_indices(institucion_id),
-            ),
-        }
-    ]
+    mensajes = []
     for turno in historial or []:
         mensajes.append({"role": "user", "content": turno["pregunta"]})
         mensajes.append({"role": "assistant", "content": turno["respuesta"]})
@@ -311,7 +336,7 @@ def _mensajes_iniciales(
     return mensajes
 
 
-def _contrato_de(mensaje) -> dict:
+def _contrato_de(respuesta) -> dict:
     """El contrato que el modelo devolvió, o vacío si vino cortado a la mitad.
 
     El esquema estricto garantiza la forma pero no la entrega. Vacío entra al
@@ -319,7 +344,7 @@ def _contrato_de(mensaje) -> dict:
     llevarse puesta la respuesta con un traceback.
     """
     try:
-        return json.loads(mensaje.content or "{}")
+        return json.loads(respuesta.output_text or "{}")
     except json.JSONDecodeError:
         return {}
 
@@ -334,11 +359,11 @@ def _correr(llamada, institucion_id: int) -> tuple[str, dict, Ok | Rechazada | F
     Los `null` se descartan porque el esquema estricto obliga al modelo a mandar
     todas las propiedades, y un `limite=None` pisaría el default de la tool.
     """
-    nombre = llamada.function.name
+    nombre = llamada.name
     try:
         argumentos = {
             clave: valor
-            for clave, valor in json.loads(llamada.function.arguments or "{}").items()
+            for clave, valor in json.loads(llamada.arguments or "{}").items()
             if valor is not None
         }
         return nombre, argumentos, TOOLS[nombre](institucion_id=institucion_id, **argumentos)

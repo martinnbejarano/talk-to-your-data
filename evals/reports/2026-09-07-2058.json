@@ -1,0 +1,97 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 3,
+    "llamadas": 3,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 3,
+        "pass_1": 0.6666666666666666,
+        "pass_n": 0.6666666666666666
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 47115.1,
+      "p95": 47115.1
+    },
+    "tokens": {
+      "prompt": 94931,
+      "respuesta": 12728
+    },
+    "usd": 0.86,
+    "fallas": {
+      "numero_no_trazable": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-004",
+      "clase": "agregacion_con_desglose_obligatorio",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "NO_SE_PUEDE_RESPONDER",
+      "acerto": false,
+      "respuesta": "Llegué a un número y no puedo entregarlo como corresponde: alguna cifra no salió de una consulta a la base, o la derivación quedó sin los escalones que la explican. Un número que no puedo explicar entero es peor que ninguno. Volvé a preguntarlo, o pedilo más acotado.",
+      "motivos": [
+        "estado `NO_SE_PUEDE_RESPONDER`, esperaba RESPONDIDA o RESPONDIDA_CON_SUPUESTO"
+      ],
+      "falla": "numero_no_trazable",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 64218.5,
+      "pasos": 5,
+      "tokens_prompt": 34311,
+      "tokens_respuesta": 6122,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_2365eece-7e69-407f-9c4b-2371060e73a2"
+    },
+    {
+      "id": "c-010",
+      "clase": "inferencia_sin_columna",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Encontré 307 documentos normalizados que aparecen en más de un legajo activo; esos casos involucran 634 legajos. El criterio aplicado compara tipo y número de documento normalizado, sin usar nombre ni correo.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 27386.4,
+      "pasos": 6,
+      "tokens_prompt": 30705,
+      "tokens_respuesta": 1961,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_e3d61666-2d84-4753-b9a1-2c1a865c3e40"
+    },
+    {
+      "id": "c-011",
+      "clase": "listado_ademas_del_conteo",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": true,
+      "respuesta": "Encontré 307 documentos repetidos que involucran 634 legajos activos. Abajo dejo un recorte inicial ordenado por tipo y número de documento, con los IDs de legajo involucrados.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 47115.1,
+      "pasos": 5,
+      "tokens_prompt": 29915,
+      "tokens_respuesta": 4645,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_e0f10954-d3f6-496e-96db-7be703417b55"
+    }
+  ]
+}

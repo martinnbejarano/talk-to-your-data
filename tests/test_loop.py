@@ -122,16 +122,16 @@ def test_la_pregunta_de_referencia_da_el_numero_y_la_derivacion_de_su_institucio
 def test_la_institucion_no_se_deduce_del_texto_aunque_la_pregunta_nombre_otra(
     tenant_a, tenant_b
 ):
-    """D-03: el chat no es una puerta a los datos de otra institución. Una fuga se
-    ve porque las dos poblaciones contrastan por construcción y ni el número ni
-    ninguno de los siete escalones puede coincidir."""
-    ajena = esperado_de(tenant_b)
+    """D-14: nombrar otra institución tiene que negarse, no contestarse con el
+    número propio como si fuera lo pedido. Antes de este arreglo el sistema
+    hacía justo eso —"Fintech Cuyo tiene 7.859 clientes", el número de
+    banco_andino— y no era una fuga (el RLS no dejó leer ninguna fila ajena)
+    pero salía con la cara de una respuesta correcta."""
     slug_ajeno = next(
         slug for slug, datos in REFERENCIA["por_institucion"].items() if datos["tenant_id"] == tenant_b
     )
 
     contrato = responder(f"¿Cuántos clientes de riesgo alto tiene {slug_ajeno}?", tenant_a)
 
-    assert contrato["valor"]["n"] == esperado_de(tenant_a)["valor_esperado"]
-    assert {e["escalon"]: e["n"] for e in contrato["derivacion"]} == esperado_de(tenant_a)["derivacion"]
-    assert contrato["valor"]["n"] != ajena["valor_esperado"]
+    assert contrato["estado"] == "NO_SE_PUEDE_RESPONDER"
+    assert contrato["valor"] is None

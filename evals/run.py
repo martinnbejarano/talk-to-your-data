@@ -663,6 +663,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--corridas", type=int, default=1)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--solo", help="ids o categorías separados por coma")
+    parser.add_argument("--set", default="questions.yaml", help="archivo de preguntas a correr (p.ej. el holdout de H5)")
     parser.add_argument("--mutacion", help="rompe una skill a propósito y corre sólo lo que debería romper")
     parser.add_argument("--sin-skills", action="store_true", help="ablación: el agente sin definiciones curadas")
     parser.add_argument("--solo-skill", help="ablación: sólo esta definición disponible")
@@ -671,7 +672,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     esperados = cargar("valores_esperados.yaml")
-    preguntas = filtrar(cargar("questions.yaml")["preguntas"], args.solo)
+    preguntas = filtrar(cargar(args.set)["preguntas"], args.solo)
 
     from evals import mutaciones as mut
 
@@ -690,6 +691,8 @@ def main(argv: list[str] | None = None) -> int:
         REPORTES.mkdir(exist_ok=True)
         sello = datetime.datetime.now().strftime("%Y-%m-%d-%H%M")
         variante = mut.slug(args.mutacion, args.sin_skills, args.solo_skill)
+        if args.set != "questions.yaml":
+            variante = "-".join(p for p in (Path(args.set).stem, variante) if p)
         nombre = f"{sello}-{variante}" if variante else sello
         (REPORTES / f"{nombre}.md").write_text(texto, encoding="utf-8")
         (REPORTES / f"{nombre}.json").write_text(

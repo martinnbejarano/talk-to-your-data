@@ -8,7 +8,6 @@ definicion: |
   eso lo audita cualquiera.
 
 depende_de_config: []
-periodo_por_defecto: este_año
 parametros: []
 
 trampas:

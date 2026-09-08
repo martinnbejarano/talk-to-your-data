@@ -1,0 +1,85 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 1,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      },
+      "ambigua": {
+        "preguntas": 1,
+        "pass_1": 0.0,
+        "pass_n": 0.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 22969.6,
+      "p95": 14158.7
+    },
+    "tokens": {
+      "prompt": 33309,
+      "respuesta": 3330
+    },
+    "usd": 0.27,
+    "fallas": {
+      "definicion_equivocada": 1,
+      "ambiguedad_no_detectada": 1
+    }
+  },
+  "resultados": [
+    {
+      "id": "c-011",
+      "clase": "listado_ademas_del_conteo",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Encontré 634 legajos activos involucrados en repeticiones de documento, agrupados en 307 documentos repetidos. El criterio usado fue comparar tipo y número de documento normalizado, quitando guiones y separadores.",
+      "motivos": [
+        "valor 634, esperaba 307",
+        "contestó sin filas: la pregunta pedía el listado"
+      ],
+      "falla": "definicion_equivocada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 31780.5,
+      "pasos": 5,
+      "tokens_prompt": 22609,
+      "tokens_respuesta": 2470,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_e17258a3-100e-4511-8f3c-e079aec495f2"
+    },
+    {
+      "id": "a-007",
+      "clase": "legajo_versus_persona",
+      "categoria": "ambigua",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA_CON_SUPUESTO",
+      "acerto": false,
+      "respuesta": "Al 1/6/2026, contamos 107.313 personas como clientes nuestros. Tomé “clientes” como personas con alta aprobada y vigentes, sin incluir solicitudes pendientes, rechazadas o en revisión.",
+      "motivos": [
+        "eligió 107313, que no es ninguna de las lecturas (174669, 174342)"
+      ],
+      "falla": "ambiguedad_no_detectada",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 14158.7,
+      "pasos": 3,
+      "tokens_prompt": 10700,
+      "tokens_respuesta": 860,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_c914b766-591e-419f-b1a1-71b69d114341"
+    }
+  ]
+}

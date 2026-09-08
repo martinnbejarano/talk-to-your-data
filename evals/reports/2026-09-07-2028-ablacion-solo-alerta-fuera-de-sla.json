@@ -1,0 +1,72 @@
+{
+  "metricas": {
+    "corridas": 1,
+    "preguntas": 2,
+    "llamadas": 2,
+    "por_categoria": {
+      "contestable": {
+        "preguntas": 2,
+        "pass_1": 1.0,
+        "pass_n": 1.0
+      }
+    },
+    "fugas": 0,
+    "falsa_ambiguedad": 0,
+    "timeouts": 0,
+    "rechazos_del_gate": 0,
+    "latencia_ms": {
+      "p50": 17254.55,
+      "p95": 14964.3
+    },
+    "tokens": {
+      "prompt": 24798,
+      "respuesta": 2531
+    },
+    "usd": 0.2,
+    "fallas": {}
+  },
+  "resultados": [
+    {
+      "id": "c-007",
+      "clase": "calculo_temporal_contra_config",
+      "categoria": "contestable",
+      "institucion": "banco_andino",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": true,
+      "respuesta": "Hay 9.339 alertas fuera del SLA de primera revisión. Son las alertas sin revisar que ya vencieron y las alertas que tuvieron primera revisión después del plazo configurado.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 14964.3,
+      "pasos": 3,
+      "tokens_prompt": 12383,
+      "tokens_respuesta": 1086,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_853371fe-0af5-4ba6-af2c-3f9cdcc9badc"
+    },
+    {
+      "id": "c-008",
+      "clase": "mitad_vacia_de_la_definicion",
+      "categoria": "contestable",
+      "institucion": "fintech_cuyo",
+      "corrida": 1,
+      "estado": "RESPONDIDA",
+      "acerto": true,
+      "respuesta": "Hay 199 alertas fuera del SLA de primera revisión. Todas corresponden a alertas que siguen sin revisar y ya vencieron el plazo configurado; no hay alertas revisadas tarde para este SLA.",
+      "motivos": [],
+      "falla": "",
+      "fugas": [],
+      "falsa_ambiguedad": false,
+      "ms": 19544.8,
+      "pasos": 3,
+      "tokens_prompt": 12415,
+      "tokens_respuesta": 1445,
+      "rechazos_del_gate": 0,
+      "timeouts": 0,
+      "traza_id": "tz_853a6d12-9ee2-44c1-8915-a017941d9e36"
+    }
+  ]
+}
