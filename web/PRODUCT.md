@@ -74,8 +74,13 @@ decisión con sentido, un "87 %" no significa nada accionable.
   ejecutan consultas de verdad. La espera es parte del producto y tiene que
   leerse como evidencia de trabajo, no como una pantalla colgada.
 - **El servidor no guarda sesiones**: el historial lo arrastra el front y viaja
-  en cada pregunta. Una pregunta escrita a mano va siempre con historial vacío;
-  sólo el clic en una opción de repregunta arrastra el turno previo.
+  en cada pregunta. Van **los dos últimos turnos**, tanto si la pregunta se
+  escribió a mano como si salió de un clic en una repregunta. "¿Y el mes
+  pasado?" es la forma normal de preguntar de alguien que ya está mirando un
+  número. A cambio, **si la respuesta se apoyó en un turno anterior, el sistema
+  declara qué entendió**: la oración tiene que poder leerse sola, porque quien la
+  audite no va a tener el turno de arriba delante. Cambiar de institución vacía
+  los turnos, y el historial nunca cambia de institución.
 - Español rioplatense, con voseo, en toda la interfaz.
 
 ## Capabilities and Constraints

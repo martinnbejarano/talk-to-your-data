@@ -6,15 +6,9 @@ import { BarraInstitucion } from "./componentes/BarraInstitucion.jsx";
 import { Respuesta } from "./componentes/Respuesta.jsx";
 import { Alerta, Flecha } from "./componentes/Iconos.jsx";
 
-// Un atajo, no una lista de preguntas permitidas: es la única con valor esperado
-// conocido —7.859 en Banco Andino, 321 en Fintech Cuyo—.
+
 const PREGUNTA_DE_REFERENCIA = "¿Cuántos clientes de riesgo alto tenemos?";
 
-// La de referencia va primera: es la canónica del README y del eval, y su número
-// —7.859 en Banco Andino— está verificado a mano. Las otras dos están elegidas
-// porque **contestan con una serie**, que es lo único que se dibuja (D-19): sin
-// una de ellas a mano, un oficial puede usar la pantalla entera sin enterarse de
-// que hay gráficos.
 const PARA_EMPEZAR = [
   PREGUNTA_DE_REFERENCIA,
   "¿Cuántos casos reportamos a la UIF por mes este año?",
@@ -54,11 +48,16 @@ export function App() {
     fondo.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [turnos.length, enCurso]);
 
-  /** **Una pregunta escrita a mano siempre va con `turnos` vacío**, y sólo el
-   * clic en una opción arrastra los turnos previos. Un número que dependa de una
-   * pregunta que ya no está en pantalla no se puede defender ante un auditor: el
-   * historial existe para cerrar una repregunta —ahí el turno previo sí está a la
-   * vista— y no para convertir esto en un chat con memoria.
+  /** El historial va **en las dos rutas**: la que escribe a mano y el clic en una
+   * opción. "¿Y el mes pasado?" es la forma normal de preguntar de alguien que
+   * ya está mirando un número, y negarse a entenderla se lee como una falla y no
+   * como rigor.
+   *
+   * La objeción que esto tenía —un número que depende de una pregunta que ya no
+   * se ve no se puede defender ante un auditor— se resuelve del lado del modelo
+   * y no negándole el contexto: si usó un turno previo, lo **declara en
+   * `supuestos`** y la oración vuelve a leerse sola. Que es lo mismo que
+   * el sistema ya hace con cualquier otra ambigüedad.
    */
   async function mandar(pregunta, historial) {
     if (!pregunta.trim() || institucionId === null || pensando) return;
@@ -73,14 +72,11 @@ export function App() {
     }
   }
 
-  // Vuelve al backend como pregunta nueva con el turno de la repregunta adjunto:
-  // así se cierra la aclaración sin sesión en el servidor y sin que el oficial
-  // reescriba la pregunta entera.
+  // Vuelve al backend como pregunta nueva con los turnos previos adjuntos: así se
+  // cierra la aclaración sin sesión en el servidor y sin que el oficial reescriba
+  // la pregunta entera.
   function elegirOpcion(opcion) {
-    mandar(
-      opcion,
-      turnos.map((turno) => ({ pregunta: turno.pregunta, respuesta: turno.contrato.respuesta })),
-    );
+    mandar(opcion, ultimosTurnos(turnos));
   }
 
   // El historial no cruza de institución: arrastrarlo sería meter datos de una
@@ -152,7 +148,7 @@ export function App() {
       <Preguntar
         texto={texto}
         alEscribir={setTexto}
-        alMandar={() => mandar(texto, [])}
+        alMandar={() => mandar(texto, ultimosTurnos(turnos))}
         bloqueado={pensando || institucionId === null}
         pensando={pensando}
       />
@@ -215,6 +211,12 @@ function Vacio({ arranque, alSugerir, bloqueado }) {
       </div>
     </div>
   );
+}
+
+function ultimosTurnos(turnos) {
+  return turnos
+    .slice(-2)
+    .map((turno) => ({ pregunta: turno.pregunta, respuesta: turno.contrato.respuesta }));
 }
 
 // Existe porque `POST /ask` es sincrónico: sin un contador que se mueva, los
